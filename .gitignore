@@ -1,0 +1,5 @@
+**.csv
+**.bmp
+images/**
+.env/
+__pycache__/**
