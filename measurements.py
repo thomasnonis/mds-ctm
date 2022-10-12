@@ -47,3 +47,48 @@ def find_mark(mark, extracted_watermark, mark_size):
 		print('Mark has been found. SIM = %f' % sim)
 	else:
 		print('Mark has been lost. SIM = %f' % sim)
+
+def local_variance(img, i, j, window_size):
+	from math import floor
+	# compute the local variance of the image within a square window of window_size centered at position (i,j)
+
+	i_min = i-floor(window_size/2)
+	i_max = i+floor(window_size/2) + 1
+	j_min = j-floor(window_size/2)
+	j_max = j+floor(window_size/2) + 1
+
+	if i_min < 0:
+		i_min = 0
+	elif i_max > img.shape[0]:
+		i_max = img.shape[0]
+
+	if j_min < 0:	
+		j_min = 0
+	elif j_max > img.shape[1]:
+		j_max = img.shape[1]
+
+	mean = np.mean(img[i_min:i_max, j_min:j_max])
+
+	variance = 0
+	for x in range(i-floor(window_size/2), i+floor(window_size/2)):
+		for y in range(j-floor(window_size/2), j+floor(window_size/2)):
+			if x >= 0 and x < img.shape[0] and y >= 0 and y < img.shape[1]:
+				variance += (img[x, y] - mean)**2
+
+	variance = variance / ((window_size*window_size) - 1)
+	return variance
+
+def nvf(img, D, window_size):
+	max_variance = 0
+
+	variance = np.zeros([img.shape[0], img.shape[1]])
+
+	for i in range(0, img.shape[0]):
+		for j in range(0, img.shape[1]):
+			variance[i,j] = local_variance(img, i, j, window_size)
+			if variance[i,j] > max_variance:
+				max_variance = variance[i,j]
+
+	theta = D/max_variance
+
+	return 1/(1+theta*variance)
