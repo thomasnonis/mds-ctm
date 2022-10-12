@@ -20,10 +20,13 @@ from transforms import *
 start_time = time()
 print('Starting...')
 
+if not os.path.isdir('images/'):
+	os.mkdir('images/')
+
 if not os.path.isfile('images/lena.bmp'):  
 	os.system('python -m wget "https://drive.google.com/uc?export=download&id=17MVOgbOEOqeOwZCzXsIJMDzW5Dw9-8zm" -o images/lena.bmp')
 
-if not os.path.isfile('images/lensa.bmp'):
+if not os.path.isfile('images/lena.bmp'):
 	sys.exit('Failed downlading images')
 
 img_path = 'images/lena.bmp'
