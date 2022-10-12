@@ -41,9 +41,9 @@ def compute_thr(sim, mark_size, w):
     return T
 
 def find_mark(mark, extracted_watermark, mark_size):
-	sim = similarity(mark, wat_ex)
+	sim = similarity(mark, extracted_watermark)
 	T = compute_thr(sim, mark_size, mark)
-	if sim > T_wat:
+	if sim > T:
 		print('Mark has been found. SIM = %f' % sim)
 	else:
 		print('Mark has been lost. SIM = %f' % sim)
