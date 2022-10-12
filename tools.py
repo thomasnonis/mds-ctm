@@ -12,3 +12,25 @@ def wpsnr_to_mark(wpsnr):
 	if wpsnr >= 66:
 		return 6
 	return 0
+
+def generate_watermark(mark_size):
+	import numpy as np
+	# Generate a watermark
+	mark = np.random.uniform(0.0, 1.0, mark_size)
+	mark = np.uint8(np.rint(mark))
+	np.save('mark.npy', mark)
+	return mark
+
+# list_of_images: [(watermarked,"Watermarked"),(attacked,"Attacked"),...]
+def show_images(list_of_images, rows, columns):
+	import matplotlib.pyplot as plt
+	
+	plt.figure(figsize=(15, 6))
+	for (i,(image,label)) in enumerate(list_of_images):
+
+		plt.subplot(rows,columns,i+1)
+		plt.title(list_of_images[i][1])
+		plt.imshow(list_of_images[i][0], cmap='gray')
+	plt.show()
+
+

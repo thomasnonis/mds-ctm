@@ -27,3 +27,23 @@ def psnr(img1, img2):
 def similarity(img1,img2):
 	#Computes the similarity measure between the original and the new watermarks.
 	return np.sum(np.multiply(img1, img2)) / np.sqrt(np.sum(np.multiply(img2, img2)))
+
+def compute_thr(sim, mark_size, w):
+    SIM = np.zeros(1000)
+    SIM[0] = abs(sim)
+    for i in range(1, 1000):
+        r = np.random.uniform(0.0, 1.0, mark_size)
+        SIM[i] = abs(similarity(w, r))
+    
+    SIM.sort()
+    t = SIM[-2]
+    T = t + (0.1*t)
+    return T
+
+def find_mark(mark, extracted_watermark, mark_size):
+	sim = similarity(mark, wat_ex)
+	T = compute_thr(sim, mark_size, mark)
+	if sim > T_wat:
+		print('Mark has been found. SIM = %f' % sim)
+	else:
+		print('Mark has been lost. SIM = %f' % sim)
