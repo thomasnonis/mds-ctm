@@ -4,42 +4,42 @@ from math import sqrt,log,e
 from transforms import dct2d,idct2d,dwt2d,idwt2d, wavedec2d, waverec2d
 import pywt
 
-def embedding_dct(image, mark, alpha, v='multiplicative'):
-    # Get the DCT transform of the image
-    ori_dct = dct2d(image) 
+def embedding_dct(original_img, mark, alpha, v='multiplicative'):
+    # Get the DCT transform of the original_img
+    ori_dct = dct2d(original_img) 
 
     # Get the locations of the most perceptually significant components
     sign = np.sign(ori_dct)
     ori_dct = abs(ori_dct)
     locations = np.argsort(-ori_dct,axis=None) # - sign is used to get descending order
-    rows = image.shape[0]
+    rows = original_img.shape[0]
     locations = [(val//rows, val%rows) for val in locations] # locations as (x,y) coordinates
 
     # Embed the watermark
-    watermarked_dct = ori_dct.copy()
+    watermarked_img_dct = ori_dct.copy()
     for idx, (loc,mark_val) in enumerate(zip(locations[1:], mark)):
         if v == 'additive':
-            watermarked_dct[loc] += (alpha * mark_val)
+            watermarked_img_dct[loc] += (alpha * mark_val)
         elif v == 'multiplicative':
-            watermarked_dct[loc] *= 1 + ( alpha * mark_val)
+            watermarked_img_dct[loc] *= 1 + ( alpha * mark_val)
         elif v == 'exponential':
-            watermarked_dct[loc] *= e**(alpha*mark_val)
+            watermarked_img_dct[loc] *= e**(alpha*mark_val)
 
     # Restore sign and o back to spatial domain
-    watermarked_dct *= sign
-    watermarked = np.uint8(idct2d(watermarked_dct))
+    watermarked_img_dct *= sign
+    watermarked_img = np.uint8(idct2d(watermarked_img_dct))
 
-    return watermarked
+    return watermarked_img
 
-def detection_dct(image, watermarked, alpha, mark_size, v='multiplicative'):
-    ori_dct = dct2d(image)
-    wat_dct = dct2d(watermarked)
+def detection_dct(original_img, watermarked_img, alpha, mark_size, v='multiplicative'):
+    ori_dct = dct2d(original_img)
+    wat_dct = dct2d(watermarked_img)
 
     # Get the locations of the most perceptually significant components
     ori_dct = abs(ori_dct)
     wat_dct = abs(wat_dct)
     locations = np.argsort(-ori_dct,axis=None) # - sign is used to get descending order
-    rows = image.shape[0]
+    rows = original_img.shape[0]
     locations = [(val//rows, val%rows) for val in locations] # locations as (x,y) coordinates
 
     # Generate a watermark
@@ -56,27 +56,19 @@ def detection_dct(image, watermarked, alpha, mark_size, v='multiplicative'):
             
     return w_ex
 
-def detection_dwt(image, watermarked, alpha, level, mark_size):
-    coeffs = wavedec2d(image,level)
-    LL = coeffs[0]
+def detection_dwt(original_img, watermarked_img, alpha, level, mark_size):
+    original_coeffs = wavedec2d(original_img, level)
+    original_LL = original_coeffs[0]
 
-    ncoeffs = wavedec2d(watermarked,level)
-    nLL = ncoeffs[0]
+    watermarked_coeffs = wavedec2d(watermarked_img, level)
+    watermarked_LL = watermarked_coeffs[0]
 
-    # Generate a watermark
-    size = int(mark_size / (2**level))
-    wLL = np.zeros([size,size], dtype=np.float64)
+    # Initialize the watermark matrix
+    watermark = np.zeros([mark_size, mark_size], dtype=np.float64)
 
-    # Embed the watermark
-    for i in range(0,size):
-        for j in range(0,size):
-            wLL[i][j] = (nLL[i][j]  - LL[i][j]) / alpha
-    
-    coeffs = [wLL]
+    # Extract the watermark
+    for i in range(0,mark_size):
+        for j in range(0,mark_size):
+            watermark[i][j] = (watermarked_LL[i][j] - original_LL[i][j]) / alpha
 
-    for i in range(0,level):
-        tmp = np.zeros([max(size,size*(2*i)),max(size,size*(2*i))])
-        coeffs.append((tmp,tmp,tmp))
-
-    w_ex = waverec2d(coeffs)
-    return w_ex
+    return watermark

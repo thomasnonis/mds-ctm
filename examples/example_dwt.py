@@ -32,37 +32,40 @@ if not os.path.isfile('images/lena.bmp'):
 
 # Read the image
 img_path = 'images/lena.bmp'
-image = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+original_img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
 
 # Embed a watermark
 level = 3
-coeffs = wavedec2d(image,level)
-LL3 = coeffs[0]
+original_coeffs = wavedec2d(original_img,level)
+original_LL = original_coeffs[0]
 
 mark_size = 32
-mark = generate_watermark(1024).reshape((mark_size, mark_size)) # So that it is a square
-
-w_coeffs = wavedec2d(mark,level)
-wLL3 = w_coeffs[0]
+watermark = generate_watermark(1024).reshape((mark_size, mark_size)) # So that it is a square
 
 alpha = 10
 
-newLL3 = LL3.copy()
-print(newLL3.shape, wLL3.shape)
-for x in range(0,wLL3.shape[0]):
-	for y in range(0,wLL3.shape[1]):
-		newLL3[x][y] += alpha * wLL3[x][y]
+watermarked_LL = original_LL.copy()
 
-coeffs[0] = newLL3
-watermarked = waverec2d(coeffs)
+for x in range(0,watermark.shape[0]):
+	for y in range(0,watermark.shape[1]):
+		watermarked_LL[x][y] += alpha * watermark[x][y]
 
-show_images([(watermarked,"Watermarked")], 1, 1)
-print(mark)
-extracted = detection_dwt(image, watermarked, alpha, level, mark_size)
+original_coeffs[0] = watermarked_LL
 
-print(extracted)
+watermarked_img = waverec2d(original_coeffs)
 
-print(mark==extracted) # They should be equal!
+watermarked_img = jpeg_compression(watermarked_img, 50)
+# watermarked_img = median(watermarked_img, 5)
+# watermarked_img = resize(watermarked_img, 0.5)
+# watermarked_img = gaussian_blur(watermarked_img, 1)
 
-print(mark.shape, extracted.shape)
+extracted_watermark = detection_dwt(original_img, watermarked_img, alpha, level, mark_size)
+
+# TODO: Implement threshold learning with a set of images and a set of attacks
+sim = similarity(watermark, extracted_watermark)
+
+print('SIM: %.4f' % sim)
+
 print('Total elapsed time: %.2f[s]' % (time() - start_time))
+
+show_images([(original_img, "Original image"), (watermarked_img,"Watermarked image"), (watermarked_img - original_img, "Difference between images"), (watermark, "Watermark"), (extracted_watermark, "Extracted watermark"), (extracted_watermark - watermark, "Difference between watermarks")], 3, 3)

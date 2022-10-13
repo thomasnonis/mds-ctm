@@ -6,6 +6,7 @@ from skimage.transform import rescale
 import numpy as np
 import cv2
 from PIL import Image
+import os
 
 # The only allowed attacks are:
 # - Additive White Gaussian Noise
@@ -46,7 +47,9 @@ def awgn(img, mean, std, seed):
 
 def jpeg_compression(img, QF):
 	img = Image.fromarray(img)
+	img = img.convert('L')
 	img.save('tmp.jpg',"JPEG", quality=QF)
 	attacked = Image.open('tmp.jpg')
 	attacked = np.asarray(attacked,dtype=np.uint8)
 	os.remove('tmp.jpg')
+	return attacked
