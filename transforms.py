@@ -1,5 +1,5 @@
 from scipy.fft import dct, idct, fft2, ifft2
-from pywt import dwt2, idwt2
+from pywt import dwt2, idwt2, wavedec2, waverec2
 
 def dct2d(img):
 	return dct(dct(img, axis=0, norm='ortho'), axis=1, norm='ortho')
@@ -16,5 +16,11 @@ def ifft2d(img):
 def dwt2d(img):
 	return dwt2(img, 'haar')
 
-def idwt2d(img):
-	return idwt2(img, 'haar')
+def idwt2d(LL,LH,HL,HH):
+	return idwt2((LL,(LH,HL,HH)), 'haar')
+
+def wavedec2d(image, level):
+	return wavedec2(image, wavelet='haar', level=level)
+
+def waverec2d(coeffs):
+	return waverec2(coeffs,wavelet='haar')

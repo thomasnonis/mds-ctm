@@ -1,7 +1,7 @@
 from scipy.fft import dct, idct
 import numpy as np
 from math import sqrt,log,e
-from transforms import dct2d,idct2d
+from transforms import dct2d,idct2d,dwt2d,idwt2d, wavedec2d, waverec2d
 import pywt
 
 def embedding_dct(image, mark, alpha, v='multiplicative'):
@@ -56,32 +56,27 @@ def detection_dct(image, watermarked, alpha, mark_size, v='multiplicative'):
             
     return w_ex
 
-def detection_dwt(image, watermarked, alpha, mark_size):
-    coeffs = pywt.dwt2(image, 'haar')
-    LL, (LH, HL, HH) = coeffs
+def detection_dwt(image, watermarked, alpha, level, mark_size):
+    coeffs = wavedec2d(image,level)
+    LL = coeffs[0]
 
-    coeffs2 = pywt.dwt2(LL, 'haar')
-    LL2, (LH2, HL2, HH2) = coeffs2
-
-    coeffs3 = pywt.dwt2(LL2, 'haar')
-    LL3, (LH3, HL3, HH3) = coeffs3
-
-
-    n_coeffs = pywt.dwt2(watermarked, 'haar')
-    nLL, (nLH, nHL, nHH) = n_coeffs
-
-    n_coeffs2 = pywt.dwt2(nLL, 'haar')
-    nLL2, (nLH2,nHL2, nHH2) = n_coeffs2
-
-    n_coeffs3 = pywt.dwt2(nLL2, 'haar')
-    nLL3, (nLH3, nHL3, nHH3) = n_coeffs3
+    ncoeffs = wavedec2d(watermarked,level)
+    nLL = ncoeffs[0]
 
     # Generate a watermark
-    w_ex = np.zeros([mark_size[0],mark_size[1]], dtype=np.float64)
+    size = int(mark_size / (2**level))
+    wLL = np.zeros([size,size], dtype=np.float64)
 
     # Embed the watermark
-    for i in range(0,mark_size[0]):
-        for j in range(0,mark_size[1]):
-            w_ex[i][j] = (nLL3[i][j]  - LL3[i][j]) / alpha
-                
+    for i in range(0,size):
+        for j in range(0,size):
+            wLL[i][j] = (nLL[i][j]  - LL[i][j]) / alpha
+    
+    coeffs = [wLL]
+
+    for i in range(0,level):
+        tmp = np.zeros([max(size,size*(2*i)),max(size,size*(2*i))])
+        coeffs.append((tmp,tmp,tmp))
+
+    w_ex = waverec2d(coeffs)
     return w_ex
