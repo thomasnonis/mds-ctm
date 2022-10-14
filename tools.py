@@ -1,3 +1,7 @@
+import os
+import cv2
+
+
 def wpsnr_to_mark(wpsnr):
 	if wpsnr >= 35 and wpsnr < 50:
 		return 1
@@ -33,4 +37,11 @@ def show_images(list_of_images, rows, columns):
 		plt.imshow(list_of_images[i][0], cmap='gray')
 	plt.show()
 
+def load_images_from_folder(folder):
+    images = []
+    for filename in os.listdir(folder):
+        img = cv2.imread(os.path.join(folder,filename))
+        if img is not None:
+            images.append(img)
+    return images
 
