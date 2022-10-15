@@ -8,6 +8,7 @@ from measurements import *
 from transforms import *
 from embedding import *
 from tools import *
+from thr_computation import *
 
 def embed_watermark(original_img, img_name, watermark, level, alpha):
 	coeffs = wavedec2d(original_img, level)
@@ -88,3 +89,15 @@ for original_img, img_name in images[:N_IMAGES_LIMIT]:
 
 		show_images([(extracted, "Extracted watermak"), (attacked, "Attacked"), (extracted_watermark, "Watermark attacked")], 1, 3)
 		'''
+
+# Compute threshold
+img_folder_path = '../sample-images'
+images = import_images(img_folder_path)
+paths = os.listdir(img_folder_path)
+w_images = []
+for i in range(len(images)):
+	#print(images[i][0])
+	w_img = embed_watermark(images[i][0], paths[i], watermark, DWT_LEVEL, DEFAULT_ALPHA)
+	w_images.append(images[i])
+t = compute_thr_multiple_images(w_images, paths[i], watermark, DEFAULT_ALPHA, MARK_SIZE)
+print("Threshold: ", t)

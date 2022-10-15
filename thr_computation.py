@@ -1,42 +1,40 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
-import embedding
 import measurements
+from embedding import detection_dwt_svd
+from config import *
+from tools import *
+from attacks import *
 
-def compute_thr(images, watermark, alpha, mark_size):
+def compute_thr_multiple_images(w_images, img_name, watermark, alpha, mark_size):
     ext_watermarks = []
     scores = []
     labels = []
 
+    (_, alpha, svd_key) = read_parameters(img_name)
     # step by step for clarity
-    for i in images:
-        w_image = embedding.embedding_dct(i, watermark, alpha)
-        a_image = attack(w_image)
-        w_ext = embedding.detection_dct(a_image)
+    for w_image in w_images:
+        a_image = attack(w_image[0])
+        w_ext = detection_dwt_svd(w_image[0], a_image, DEFAULT_ALPHA, DWT_LEVEL, mark_size, svd_key)
 
         # store extracted watermarks
         ext_watermarks.append(w_ext)
 
     # true positive population
-    for i in len(ext_watermarks):
+    for i in range(len(ext_watermarks)):
         scores.append(measurements.similarity(watermark, ext_watermarks[i]))
         labels.append(1)
 
     # true negative population
-    for i in len(ext_watermarks):
-        mark = np.random.uniform(0.0, 1.0, mark_size)
-        print(mark)
-        mark = np.uint8(np.rint(mark))
-
-        scores.append(measurements.similarity(mark, ext_watermarks[i]))
+    for i in range(len(ext_watermarks)):
+        scores.append(measurements.similarity(generate_watermark(mark_size), ext_watermarks[i]))
         labels.append(0)
 
-    compute_ROC(scores, labels)
-    return
+    return compute_ROC(scores, labels)
 
-def attack():
-    return
+def attack(w_image):
+    return w_image #jpeg_compression(w_image, 50)
 
 # Check if correct
 def compute_ROC(scores, labels):
@@ -61,4 +59,4 @@ def compute_ROC(scores, labels):
     print('For a FPR approximately equals to 0.05 corresponds a TPR equals to %0.2f' % tpr[idx_tpr[0][0]])
     print('For a FPR approximately equals to 0.05 corresponds a threshold equals to %0.2f' % tau[idx_tpr[0][0]])
     print('Check FPR %0.2f' % fpr[idx_tpr[0][0]])
-    return
+    return tau[idx_tpr[0][0]] # return thr
