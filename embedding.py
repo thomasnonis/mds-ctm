@@ -73,13 +73,13 @@ def detection_dwt(original_img, watermarked_img, alpha, level, mark_size):
 
     return watermark
 
-def detection_dwt_svd(original_img, watermarked_img, alpha, level, mark_size, original_s_ll_d_u, original_s_ll_d_v):
+def detection_dwt_svd(original_img, watermarked_img, alpha, level, mark_size, svd_key):
     original_coeffs = wavedec2d(original_img, level)
     original_LL = original_coeffs[0]
 
     original_ll_u, original_ll_s, original_ll_v = np.linalg.svd(original_LL)
-    
     original_ll_s = np.diag(original_ll_s)
+    
     watermarked_coeffs = wavedec2d(watermarked_img, level)
     watermarked_LL = watermarked_coeffs[0]
 
@@ -87,7 +87,7 @@ def detection_dwt_svd(original_img, watermarked_img, alpha, level, mark_size, or
     watermarked_ll_s = np.diag(watermarked_ll_s)
     
     # original_s_ll_d_u, original_s_ll_d_s, original_s_ll_d_v 
-    s_ll_d = np.matmul(np.matmul(original_s_ll_d_u,watermarked_ll_s),original_s_ll_d_v)
+    s_ll_d = svd_key[0] @ watermarked_ll_s @ svd_key[1]
 
     # Initialize the watermark matrix
     watermark = np.zeros([mark_size, mark_size], dtype=np.float64)

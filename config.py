@@ -1,0 +1,9 @@
+# Set configuration parameters
+DWT_LEVEL = 1
+MARK_SIZE = 32
+DEFAULT_ALPHA = 100
+MAX_N_ATTACKS = 5
+N_AVAILABLE_ATTACKS = 6
+RUNS_PER_IMAGE = 10
+PARAMETERS_FOLDER_PATH = 'parameters/'
+IMG_FOLDER_PATH = 'images/'
