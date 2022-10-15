@@ -1,4 +1,3 @@
-import scipy
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import medfilt
 import matplotlib as mpl

@@ -1,0 +1,106 @@
+
+	Date-Time: <class 'datetime.datetime'>
+	Threshold: 11.486277043811766
+	TPR: 0.9
+	TARGET_FPR: 0.05
+	FPR: 0.075
+	Alpha: 200
+	n_images: 2
+	MAX_N_ATTACKS: 4
+	N_AVAILABLE_ATTACKS: 6
+	RUNS_PER_IMAGE: 20
+	N_FALSE_WATERMARKS_GENERATIONS: 1
+	====================
+
+	Date-Time: 15/10/2022 22:58:42
+	Threshold: 11.804947417170535
+	TPR: 0.9
+	TARGET_FPR: 0.05
+	FPR: 0.1
+	Alpha: 200
+	n_images: 2
+	MAX_N_ATTACKS: 4
+	N_AVAILABLE_ATTACKS: 6
+	RUNS_PER_IMAGE: 5
+	N_FALSE_WATERMARKS_GENERATIONS: 1
+	==================================
+
+	Date-Time: 15/10/2022 23:01:58
+	Threshold: 11.669008082339616
+	TPR: 1.0
+	TARGET_FPR: 0.05
+	FPR: 0.1
+	Alpha: 200
+	n_images: 2
+	MAX_N_ATTACKS: 4
+	N_AVAILABLE_ATTACKS: 6
+	RUNS_PER_IMAGE: 5
+	N_FALSE_WATERMARKS_GENERATIONS: 1
+	==================================
+
+	Date-Time: 15/10/2022 23:10:35
+	Threshold: 12.182446070599136
+	TPR: 0.9607843137254902
+	TARGET_FPR: 0.03
+	FPR: 0.03058823529411765
+	Alpha: 300
+	n_images: 51
+	MAX_N_ATTACKS: 4
+	N_AVAILABLE_ATTACKS: 6
+	RUNS_PER_IMAGE: 25
+	N_FALSE_WATERMARKS_GENERATIONS: 1
+	==================================
+	
+	Date-Time: 15/10/2022 23:33:32
+	Threshold: 11.247221879201973
+	TPR: 1.0
+	TARGET_FPR: 0.03
+	FPR: 0.25
+	Alpha: 250
+	n_images: 1
+	MAX_N_ATTACKS: 7
+	N_AVAILABLE_ATTACKS: 6
+	RUNS_PER_IMAGE: 4
+	N_FALSE_WATERMARKS_GENERATIONS: 1
+	==================================
+
+	Date-Time: 15/10/2022 23:34:25
+	Threshold: 11.814103636600477
+	TPR: 0.95
+	TARGET_FPR: 0.03
+	FPR: 0.05
+	Alpha: 250
+	n_images: 10
+	MAX_N_ATTACKS: 7
+	N_AVAILABLE_ATTACKS: 6
+	RUNS_PER_IMAGE: 4
+	N_FALSE_WATERMARKS_GENERATIONS: 1
+	==================================
+
+	Date-Time: 15/10/2022 23:35:38
+	Threshold: 12.06630951977213
+	TPR: 0.95
+	TARGET_FPR: 0.03
+	FPR: 0.04
+	Alpha: 250
+	n_images: 10
+	MAX_N_ATTACKS: 7
+	N_AVAILABLE_ATTACKS: 6
+	RUNS_PER_IMAGE: 10
+	N_FALSE_WATERMARKS_GENERATIONS: 1
+	==================================
+
+	Date-Time: 15/10/2022 23:42:28
+	Threshold: 12.246440605582048
+	TPR: 0.949673202614379
+	TARGET_FPR: 0.03
+	FPR: 0.030065359477124184
+	Alpha: 250
+	n_images: 51
+	MAX_N_ATTACKS: 3
+	N_AVAILABLE_ATTACKS: 6
+	RUNS_PER_IMAGE: 30
+	N_FALSE_WATERMARKS_GENERATIONS: 1
+	==================================
+
+	

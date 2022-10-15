@@ -3,6 +3,12 @@ import os
 from scipy.signal import convolve2d
 from math import sqrt
 import cv2
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, auc
+
+from attacks import random_attacks
+from tools import *
+from config import *
 
 def wpsnr(img1, img2):
 	if not os.path.isfile('csf.csv'):  
@@ -29,16 +35,16 @@ def similarity(img1,img2):
 	return np.sum(np.multiply(img1, img2)) / np.sqrt(np.sum(np.multiply(img2, img2)))
 
 def compute_thr(sim, mark_size, w):
-    SIM = np.zeros(1000)
-    SIM[0] = abs(sim)
-    for i in range(1, 1000):
-        r = np.random.uniform(0.0, 1.0, mark_size)
-        SIM[i] = abs(similarity(w, r))
-    
-    SIM.sort()
-    t = SIM[-2]
-    T = t + (0.1*t)
-    return T
+	SIM = np.zeros(1000)
+	SIM[0] = abs(sim)
+	for i in range(1, 1000):
+		r = np.random.uniform(0.0, 1.0, mark_size)
+		SIM[i] = abs(similarity(w, r))
+	
+	SIM.sort()
+	t = SIM[-2]
+	T = t + (0.1*t)
+	return T
 
 def find_mark(mark, extracted_watermark, mark_size):
 	sim = similarity(mark, extracted_watermark)
@@ -92,3 +98,60 @@ def nvf(img, D, window_size):
 	theta = D/max_variance
 
 	return 1/(1+theta*variance)
+
+# Check if correct
+def compute_ROC(scores, labels, show: bool = True):
+	# compute ROC
+	fpr, tpr, thr = roc_curve(np.asarray(labels), np.asarray(scores), drop_intermediate=False)
+	# compute AUC
+	roc_auc = auc(fpr, tpr)
+	plt.figure()
+	lw = 2
+
+	plt.plot(fpr, tpr, color='darkorange',
+			 lw=lw, label='AUC = %0.2f' % roc_auc)
+	plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+	plt.xlim([-0.01, 1.0])
+	plt.ylim([0.0, 1.05])
+	plt.xlabel('False Positive Rate')
+	plt.ylabel('True Positive Rate')
+	plt.title('Receiver Operating Characteristic (ROC)')
+	plt.legend(loc="lower right")
+	idx_tpr = np.where((fpr - TARGET_FPR) == min(i for i in (fpr - TARGET_FPR) if i > 0))
+	print('For a FPR approximately equals to %0.2f corresponds a TPR equal to %0.2f and a threshold equal to %0.4f with FPR equal to %0.2f' % (TARGET_FPR, tpr[idx_tpr[0][0]], thr[idx_tpr[0][0]], fpr[idx_tpr[0][0]]))
+	if show is True:
+		plt.show()
+	return thr[idx_tpr[0][0]], tpr[idx_tpr[0][0]], fpr[idx_tpr[0][0]] # return thr
+
+def compute_thr_multiple_images(images, original_watermark, show: bool = True):
+	scores = []
+	labels = []
+	n_images = len(images)
+	i = 0
+	m = 0
+	n_computations = n_images * RUNS_PER_IMAGE * N_FALSE_WATERMARKS_GENERATIONS
+	print('Total number of computations: %d' % n_computations)
+
+	# step by step for clarity
+	for original_img, watermarked_img, img_name in images:
+		(_, alpha, svd_key) = read_parameters(img_name)
+
+		for j in range(0, RUNS_PER_IMAGE):
+			attacked_img, attacks_list = random_attacks(watermarked_img)
+			extracted_watermark = extract_watermark(original_img, img_name, attacked_img)
+
+			# true positive population
+			scores.append(similarity(original_watermark, extracted_watermark))
+			labels.append(1)
+
+			# perform multiple comparisons with random watermarks to better train the classifier against false positives
+			# TODO: verify that this actually works
+			for k in range(0, N_FALSE_WATERMARKS_GENERATIONS):
+				print('{}/{} - Performed attack {}/{} on image {}/{} ({}) - false check {}/{} - attacks: {}'.format(m + 1, n_computations, j + 1, RUNS_PER_IMAGE, i + 1, n_images, img_name, k + 1, N_FALSE_WATERMARKS_GENERATIONS, attacks_list))
+				# true negative population
+				scores.append(similarity(generate_watermark(MARK_SIZE), extracted_watermark))
+				labels.append(0)
+				m += 1
+		i += 1
+
+	return compute_ROC(scores, labels, show)
