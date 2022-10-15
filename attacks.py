@@ -20,7 +20,7 @@ def gaussian_blur(img, sigma):
 	return gaussian_filter(img, sigma)
 
 def average_blur(img, kernel):
-	return cv2.blur(img, kernel)
+	return cv2.blur(img, (kernel,kernel))
 
 def bilateral_blur():
 	pass
