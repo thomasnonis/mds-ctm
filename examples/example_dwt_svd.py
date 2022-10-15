@@ -1,5 +1,6 @@
 import sys
 from time import time
+from collections import defaultdict
 
 sys.path.append("..")
 from config import *
@@ -35,10 +36,16 @@ N_IMAGES_LIMIT = len(images) # set to a lower number to limit the number of imag
 watermark = generate_watermark(1024).reshape((MARK_SIZE, MARK_SIZE)) # So that it is a square
 
 #(Image, Attacks List, WPSNR, SIM)
-optimum = (None, None, -999999, 999999)
+# optimum = (None, None, -999999, 999999)
+results = defaultdict(dict)
 
 for original_img, img_name in images[:N_IMAGES_LIMIT]:
-	watermarked_img = embed_watermark(original_img, img_name, watermark, DWT_LEVEL, DEFAULT_ALPHA)
+	watermarked_img = embed_watermark(original_img, img_name, watermark, DWT_LEVEL, DEFAULT_ALPHA) # We should try with different alpha too!
+	results[img_name] = {
+		#"watermarked_img" : watermarked_img,
+		"WPSNR": -999999,
+		"SIM": 99999
+	}
 
 	# extracted_watermark = extract_watermark(original_img, img_name, watermarked_img, DWT_LEVEL)
 
@@ -63,10 +70,13 @@ for original_img, img_name in images[:N_IMAGES_LIMIT]:
 
 		# TODO: does it make sense to run multiple random watermarks through sim for each image?
 
-		if wpsnr_m > optimum[2] and sim < optimum[3]:
-			optimum = (img_name, attacks_list, wpsnr_m, sim)
+		if wpsnr_m >= 35 and wpsnr_m > results[img_name]["WPSNR"] and sim < results[img_name]["SIM"]:
+			#optimum = (img_name, attacks_list, wpsnr_m, sim)
+			results[img_name]["Attacks"] = attacks_list
+			results[img_name]["WPSNR"] = wpsnr_m
+			results[img_name]["SIM"] = sim
 			print('======================')
-			print('New Optimum: %s' % str(optimum))
+			print('New Optimum for image %s %s' % (img_name,str(results[img_name])))
 			print('Image: %s' % img_name)
 			print('Attacks: %s' % attacks_list)
 			print('WPSNR original_img-watermarked_img: %.2f[dB]' % wpsnr(original_img, watermarked_img))
@@ -90,6 +100,7 @@ for original_img, img_name in images[:N_IMAGES_LIMIT]:
 		show_images([(extracted, "Extracted watermak"), (attacked, "Attacked"), (extracted_watermark, "Watermark attacked")], 1, 3)
 		'''
 
+print(results)
 # Compute threshold
 img_folder_path = '../sample-images'
 images = import_images(img_folder_path)

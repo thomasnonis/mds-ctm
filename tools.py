@@ -84,7 +84,7 @@ def import_images(img_folder_path):
 		images.append((cv2.imread(os.path.join(img_folder_path, img_filename), cv2.IMREAD_GRAYSCALE), img_filename.split('.')[-2]))
 
 	n_images = len(images)
-	print('Loaded', n_images, 'image' + ('s' if n_images > 1 else '') + ':')
+	print('Loaded', n_images, 'image' + ('s' if n_images > 1 else '') + ':' , os.listdir(img_folder_path))
 	
 	return images
 

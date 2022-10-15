@@ -73,12 +73,12 @@ def random_attacks(img):
 		elif attack == 1:
 			avg_blur_kernel_size = (randint(1, 3) * 2) + 1 # 3, 5, 7
 			img = average_blur(img, avg_blur_kernel_size)
-			attacks_list = append_attack_to_list(attacks_list, 'Sharpen ({})'.format(avg_blur_kernel_size))
+			attacks_list = append_attack_to_list(attacks_list, 'Average Blur ({})'.format(avg_blur_kernel_size))
 		elif attack == 2:
 			sharpen_sigma = (random() * (5 - 0.2)) + 0.2
 			sharpen_alpha = random() * (5 - 0.1) + 0.1
 			img = sharpen(img, sharpen_sigma, sharpen_alpha)
-			attacks_list = append_attack_to_list(attacks_list, 'JPEG ({}, {})'.format(sharpen_sigma, sharpen_alpha))
+			attacks_list = append_attack_to_list(attacks_list, 'Sharpen ({}, {})'.format(sharpen_sigma, sharpen_alpha))
 		elif attack == 3:
 			jpeg_quality_factor = randint(1, 10) * 10 # 10, 20, ..., 100
 			jpeg_compression(img, jpeg_quality_factor)
