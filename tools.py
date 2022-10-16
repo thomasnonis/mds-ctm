@@ -159,20 +159,6 @@ def import_images(img_folder_path: str) -> list:
 	
 	return images
 
-def append_attack_to_list(attacks_list: str, attack_string: str) -> str:
-	"""Appends a string to another string, separating them with a comma
-
-	Args:
-		attacks_list (str): String to append to
-		attack_string (str): String to append
-
-	Returns:
-		str: Appended string
-	"""
-	if attacks_list != '':
-		attacks_list += ', '
-	return attacks_list + attack_string
-
 def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray) -> np.ndarray:
 	"""Extracts the watermark from a watermarked image by appling the reversed embedding algorithm,
 	provided that the proper configuration file and the original, unwatermarked, image are available.

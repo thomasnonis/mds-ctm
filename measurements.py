@@ -1,3 +1,4 @@
+from tkinter import image_names
 import numpy as np
 import os
 from scipy.signal import convolve2d
@@ -5,12 +6,13 @@ from math import sqrt
 import cv2
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
+from random import randint
 
-from attacks import random_attacks
+from attacks import do_random_attacks, get_random_attacks
 from tools import *
 from config import *
 
-def wpsnr(img1, img2):
+def wpsnr(img1: np.ndarray, img2: np.ndarray):
 	if not os.path.isfile('csf.csv'):  
 		os.system('python -m wget "https://drive.google.com/uc?export=download&id=1w43k1BTfrWm6X0rqAOQhrbX6JDhIKTRW" -o csf.csv')
 
@@ -137,7 +139,9 @@ def compute_thr_multiple_images(images, original_watermark, show: bool = True):
 		(_, alpha, svd_key) = read_parameters(img_name)
 
 		for j in range(0, RUNS_PER_IMAGE):
-			attacked_img, attacks_list = random_attacks(watermarked_img)
+			attacks_list = get_random_attacks(randint(1, MAX_N_ATTACKS))
+			attacked_img, attacks_list = do_random_attacks(watermarked_img,attacks_list)
+
 			extracted_watermark = extract_watermark(original_img, img_name, attacked_img)
 
 			# true positive population
