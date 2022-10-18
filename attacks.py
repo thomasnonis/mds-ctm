@@ -136,6 +136,17 @@ def get_random_attacks(num_attacks):
 					'description' : 'Median ({})'.format(median_kernel_size)
 				}
 			)
+		elif attack == 6:
+			sigma = [randint(1, 5),randint(1, 5)]
+			attacks_list.append(
+				{
+					'function' : gaussian_blur,
+					'arguments' : {
+						"sigma" : sigma
+					},
+					'description' : 'Gaussian Blur ({})'.format(sigma)
+				}
+			)
 		else:
 			exit('Invalid attack %d, check that N_AVAILABLE_ATTACKS is correct' % attack)
 	return attacks_list

@@ -18,6 +18,8 @@ watermark = generate_watermark(MARK_SIZE)
 #(Image, Attacks List, WPSNR, SIM)
 optimum = (None, None, -999999, 999999)
 
+show_threshold = True
+
 watermarked_images = []
 
 for original_img, img_name in images[:n_images]:
@@ -26,7 +28,7 @@ for original_img, img_name in images[:n_images]:
 
 	watermarked_images.append((original_img, watermarked_img, img_name))
 
-threshold, tpr, fpr = compute_thr_multiple_images(watermarked_images, watermark, False)
+threshold, tpr, fpr = compute_thr_multiple_images(watermarked_images, watermark, show_threshold)
 
 
 f = open('threshold.txt', 'w')
@@ -49,7 +51,6 @@ f.write('''Date-Time: {}
 	'''.format(datetime.now().strftime("%d/%m/%Y %H:%M:%S"), threshold, tpr, TARGET_FPR, fpr, DEFAULT_ALPHA, n_images, MAX_N_ATTACKS, N_AVAILABLE_ATTACKS, RUNS_PER_IMAGE, N_FALSE_WATERMARKS_GENERATIONS))
 f.close()
 
-plt.show()
 
 '''
 # extracted_watermark = extract_watermark(original_img, img_name, watermarked_img, DWT_LEVEL)
