@@ -1,4 +1,3 @@
-from tkinter import image_names
 import numpy as np
 import os
 from scipy.signal import convolve2d
@@ -12,7 +11,7 @@ from attacks import do_random_attacks, get_random_attacks
 from tools import *
 from config import *
 
-def wpsnr(img1: np.ndarray, img2: np.ndarray):
+def wpsnr(img1: np.ndarray, img2: np.ndarray, order_of_execution: int=-1):
 	if not os.path.isfile('csf.csv'):  
 		os.system('python -m wget "https://drive.google.com/uc?export=download&id=1w43k1BTfrWm6X0rqAOQhrbX6JDhIKTRW" -o csf.csv')
 
@@ -27,7 +26,10 @@ def wpsnr(img1: np.ndarray, img2: np.ndarray):
 	csf = np.genfromtxt('csf.csv', delimiter=',')
 	ew = convolve2d(difference, np.rot90(csf,2), mode='valid')
 	decibels = 20.0*np.log10(1.0/sqrt(np.mean(np.mean(ew**2)))) # this is something that can be optimized by using numerical values instead of db
-	return decibels
+	if order_of_execution == -1:
+		return decibels
+	else: 
+		return decibels, order_of_execution
 
 def psnr(img1, img2):
 	return cv2.PSNR(img1, img2)

@@ -5,7 +5,14 @@ import pickle
 from transforms import wavedec2d, waverec2d
 from config import MARK_SIZE, DWT_LEVEL
 import matplotlib.pyplot as plt
+import concurrent.futures
+import traceback
 
+
+from config import *
+# from attacks import do_random_attacks, get_random_attacks
+# from measurements import similarity
+# from random import randint, random
 
 def wpsnr_to_mark(wpsnr: float) -> int:
 	"""Convert WPSNR to a competition mark
@@ -197,8 +204,19 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 
 	return watermark
 
+'''
+def attack_and_extract_and_sim(img_name, original_img, watermarked_img, original_watermark ):
+	attacks_list = get_random_attacks(randint(1, MAX_N_ATTACKS))
+	attacked_img, attacks_list = do_random_attacks(watermarked_img,attacks_list)
 
-def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float) -> np.ndarray:
+	extracted_watermark = extract_watermark(original_img, img_name, attacked_img)
+
+
+	sim = similarity(original_watermark, extracted_watermark)
+	return sim, extracted_watermark
+'''
+
+def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, order_of_execution: int=-1) -> np.ndarray:
 	"""Embeds a watermark into the S component of the SVD decomposition of an image's LL DWT subband
 
 	Args:
@@ -218,4 +236,41 @@ def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarr
 	save_parameters(img_name, alpha, svd_key)
 
 	coeffs[0] = ll_svd
-	return waverec2d(coeffs)
+	if order_of_execution == -1:
+		return waverec2d(coeffs)
+	else:
+		return waverec2d(coeffs), order_of_execution
+
+def multithreaded_workload(function, work):
+	with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+		future_to_report = {executor.submit(function, *unit_of_work, order_of_execution): unit_of_work for order_of_execution,unit_of_work in enumerate(work)}
+
+	tmp_results = []
+	for future in concurrent.futures.as_completed(future_to_report):
+		result = future_to_report[future]
+		try:
+			r = future.result()
+			tmp_results.append(r)
+		except Exception as exc:
+			print("Exception!", "{}".format('%r generated an exception: %s' % (result, traceback.format_exc())))
+	tmp_results = sorted(tmp_results, key = lambda x: x[1])
+	results = [result[0] for result in tmp_results]
+	
+	return results
+
+def multiprocessed_workload(function, work):
+	with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
+		future_to_report = {executor.submit(function, *unit_of_work, order_of_execution): unit_of_work for order_of_execution,unit_of_work in enumerate(work)}
+
+	tmp_results = []
+	for future in concurrent.futures.as_completed(future_to_report):
+		result = future_to_report[future]
+		try:
+			r = future.result()
+			tmp_results.append(r)
+		except Exception as exc:
+			print("Exception!", "{}".format('%r generated an exception: %s' % (result, traceback.format_exc())))
+	tmp_results = sorted(tmp_results, key = lambda x: x[1])
+	results = [result[0] for result in tmp_results]
+	
+	return results
