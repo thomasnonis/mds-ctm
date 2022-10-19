@@ -136,8 +136,6 @@ def compute_thr_multiple_images(images, original_watermark, show: bool = True):
 
 	# step by step for clarity
 	for original_img, watermarked_img, img_name in images:
-		(_, alpha, svd_key) = read_parameters(img_name)
-
 		for j in range(0, RUNS_PER_IMAGE):
 			attacks_list = get_random_attacks(randint(1, MAX_N_ATTACKS))
 			attacked_img, attacks_list = do_random_attacks(watermarked_img,attacks_list)
