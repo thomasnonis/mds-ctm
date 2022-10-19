@@ -93,5 +93,5 @@ for i in range(len(images)):
 	w_img = embed_watermark(images[i][0], paths[i], watermark, DEFAULT_ALPHA)
 	w_images.append(images[i])
 
-t = compute_thr_multiple_images(w_images, watermark, True)
+t = compute_thr_multiple_images(w_images, watermark, '../images/', True)
 print("Threshold: ", t)

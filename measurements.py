@@ -125,7 +125,7 @@ def compute_ROC(scores, labels, show: bool = True):
 		plt.show()
 	return thr[idx_tpr[0][0]], tpr[idx_tpr[0][0]], fpr[idx_tpr[0][0]] # return thr
 
-def compute_thr_multiple_images(images, original_watermark, show: bool = True):
+def compute_thr_multiple_images(images, original_watermark, img_folder_path, show: bool = True):
 	scores = []
 	labels = []
 	n_images = len(images)
@@ -136,8 +136,9 @@ def compute_thr_multiple_images(images, original_watermark, show: bool = True):
 
 	# step by step for clarity
 	for watermarked_img, img_name in images:
-		print(original_img, " ", watermarked_img)
-		(_, alpha, svd_key) = read_parameters(img_name)
+		original_img = cv2.imread(img_folder_path + img_name + '.bmp', cv2.IMREAD_GRAYSCALE)
+		#print(IMG_FOLDER_PATH + img_name + '.bmp', " - ", original_img, " - ", watermarked_img)
+		(_, alpha, svd_key) = read_parameters(img_name + '.bmp')
 
 		for j in range(0, RUNS_PER_IMAGE):
 			attacks_list = get_random_attacks(randint(1, MAX_N_ATTACKS))

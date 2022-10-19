@@ -172,7 +172,7 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 	Returns:
 		np.ndarray: Extracted watermark
 	"""
-	(_, alpha, svd_key) = read_parameters(img_name)
+	(_, alpha, svd_key) = read_parameters(img_name + '.bmp')
 	original_coeffs = wavedec2d(original_img, DWT_LEVEL)
 	original_LL = original_coeffs[0]
 
