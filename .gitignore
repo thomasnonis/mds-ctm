@@ -8,3 +8,5 @@ encrypted.zip
 mark.npy
 parameters/**
 **.png
+.idea
+examples/parameters
