@@ -1,5 +1,5 @@
 # Set configuration parameters
-DWT_LEVEL = 1
+DWT_LEVEL = 2
 MARK_SIZE = 32
 DEFAULT_ALPHA = 250
 N_IMAGES_LIMIT = 5 #1000
