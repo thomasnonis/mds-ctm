@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 import pickle
 from transforms import wavedec2d, waverec2d
-from config import MARK_SIZE, DWT_LEVEL
+from config import *
 import matplotlib.pyplot as plt
 
 
@@ -67,7 +67,6 @@ def show_images(list_of_images: list, rows: int, columns: int, show: bool = True
 		columns (int): number of columns in the grid
 		show (bool, optional): Whether to plt.show() the images within the function or let the user plt.show() at a different time. Defaults to True.
 	"""
-	plt.figure(figsize=(15, 6))
 	for (i,(image,label)) in enumerate(list_of_images):
 		plt.subplot(rows,columns,i+1)
 		plt.title(list_of_images[i][1])
@@ -109,6 +108,26 @@ def embed_into_svd(img: np.ndarray, watermark: list, alpha: float) -> tuple:
 
 	return (watermarked, (svd_s_u, svd_s_v))
 
+def extract_from_svd(img, svd_key, alpha):	
+	# Perform SVD decomposition of image
+	svd_w_u, svd_w_s, svd_w_v = np.linalg.svd(img)
+
+	# Convert S from a 1D vector to a 2D diagonal matrix
+	svd_w_s = np.diag(svd_w_s)
+
+	# Reconstruct S component using embedding key components
+	s_ll_d = svd_key[0] @ svd_w_s @ svd_key[1]
+
+	# Initialize the watermark matrix
+	watermark = np.zeros([MARK_SIZE, MARK_SIZE], dtype=np.float64)
+	
+	# Extract the watermark
+	for i in range(0,MARK_SIZE):
+		for j in range(0,MARK_SIZE):
+			watermark[i][j] = (s_ll_d[i][j] - svd_w_s[i][j]) / alpha
+
+	return watermark
+
 def save_parameters(img_name: str, alpha: float, svd_key: tuple) -> None:
 	"""Saves the necessary parameters for the detection into parameters/<img_name>_parameters.txt
 
@@ -136,7 +155,12 @@ def read_parameters(img_name: str) -> tuple:
 	f = open('parameters/' + img_name + '_parameters.txt', 'rb')
 	(img_name, alpha, svd_key) = pickle.load(f)
 	f.close()
-	return img_name, float(alpha), svd_key
+	return img_name, alpha, svd_key
+
+def import_image(img_path: str) -> list:
+	images = []
+	images.append((cv2.imread(IMG_FOLDER_PATH + img_path, cv2.IMREAD_GRAYSCALE), img_path.split('.')[-2]))
+	return images
 
 def import_images(img_folder_path: str) -> list:
 	"""Loads a list of all images contained in a folder and returns a list of (image, name) tuples
@@ -150,14 +174,16 @@ def import_images(img_folder_path: str) -> list:
 	if not os.path.isdir(img_folder_path):
 		exit('Error: Images folder not found')
 	
+	img_filenames = os.listdir(img_folder_path)
 	images = []
-	for img_filename in os.listdir(img_folder_path):
+	for i in range(len(img_filenames)):
+		if i == N_IMAGES_LIMIT:
+			break
 		# (image, name)
-		images.append((cv2.imread(img_folder_path + img_filename, cv2.IMREAD_GRAYSCALE), img_filename.split('.')[-2]))
+		images.append(import_image(img_filenames[i])[0])
 
 	n_images = len(images)
 	print('Loaded', n_images, 'image' + ('s' if n_images > 1 else ''))
-	
 	return images
 
 def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray) -> np.ndarray:
@@ -312,3 +338,29 @@ def extract_watermark_lh_hl(original_img: np.ndarray, img_name: str, watermarked
 				final_watermark[i][j] = 0
 
 	return final_watermark
+
+def make_dwt_image(img_coeffs: list) -> np.ndarray:
+	"""Creates a DWT image from a given set of DWT coefficients
+
+	Args:
+		img (np.ndarray): DWT coefficients
+
+	Returns:
+		np.ndarray: DWT image
+	"""
+	levels = len(img_coeffs) - 1
+	original_size = img_coeffs[0].shape[0] * (2 ** levels)
+	img = np.zeros((original_size, original_size), dtype=np.float64)
+	size = 0
+	i = levels
+	for level in range(1, levels+1):	
+		size = int(original_size / (2 ** level))
+		img[size:size*2, 0:size] = img_coeffs[i][0]
+		img[0:size, size:size*2] = img_coeffs[i][1]
+		img[size:size*2, size:size*2] = img_coeffs[i][2]
+		i -= 1
+
+	size = int(original_size / (2 ** levels))
+	img[0:size, 0:size] = img_coeffs[0]
+
+	return img
