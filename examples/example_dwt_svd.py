@@ -13,19 +13,19 @@ start_time = time()
 print('Starting...')
 
 # Load images
-images = import_images('../'+IMG_FOLDER_PATH)
-n_images = min(len(images), N_IMAGES_LIMIT) # set to a lower number to limit the number of images to process
+n_images = min(1,N_IMAGES_LIMIT)
+images = import_images('../'+IMG_FOLDER_PATH, n_images, True)
 watermark = generate_watermark(MARK_SIZE)
 
 
-n_images = min(1,N_IMAGES_LIMIT)
+
 
 subbands = [['LL'],['HL','LH']]
 levels = [DWT_LEVEL-1, DWT_LEVEL, DWT_LEVEL+1]
-alpha_range = np.arange(0.1, 1, 0.1) * DEFAULT_ALPHA
+alpha_range = np.arange(0.1, 0.3, 0.1) * DEFAULT_ALPHA
 watermarked_imgs = defaultdict(dict)
 print("Total work: ", n_images * len(subbands) * len(alpha_range) * len(levels))
-for original_img, img_name in images[:n_images]:
+for original_img, img_name in images:
 	watermarked_imgs[img_name]['original_img'] = original_img
 	watermarked_imgs[img_name]['watermarked'] = {}
 	for level in levels:
@@ -72,7 +72,7 @@ for img in watermarked_imgs:
 				attacked_img, _ = do_random_attacks(watermarked_image,attacks_list)
 				extracted_watermark = extract_watermark(original_img, img_name, attacked_img,level,subband)
 				xs.append(wpsnr(original_img,attacked_img))
-				ys.append(similarity(watermark, extracted_watermark))
+				ys.append(similarity(watermark, extracted_watermark)) # Sometimes we get RuntimeWarning: invalid value encountered in double_scalars for some unkown reason
 			plt.plot(xs, ys, lw=2, label=img+'_'+'-'.join(subband)+'_'+str(level))
 
 plt.xlabel('WPSNR')

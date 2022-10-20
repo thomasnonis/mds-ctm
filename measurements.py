@@ -6,6 +6,8 @@ import cv2
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 from random import randint
+import warnings
+warnings.filterwarnings("error")
 
 from attacks import do_random_attacks, get_random_attacks
 from tools import *
@@ -125,7 +127,7 @@ def compute_ROC(scores, labels, show: bool = True):
 		plt.show()
 	return thr[idx_tpr[0][0]], tpr[idx_tpr[0][0]], fpr[idx_tpr[0][0]] # return thr
 
-def compute_thr_multiple_images(images, original_watermark, img_folder_path, show: bool = True):
+def compute_thr_multiple_images(images, original_watermark, level, subband, show: bool = True):
 	scores = []
 	labels = []
 	n_images = len(images)
@@ -135,20 +137,17 @@ def compute_thr_multiple_images(images, original_watermark, img_folder_path, sho
 	print('Total number of computations: %d' % n_computations)
 
 	# step by step for clarity
-	for watermarked_img, img_name in images:
-		original_img = cv2.imread(img_folder_path + img_name + '.bmp', cv2.IMREAD_GRAYSCALE)
-		#print(IMG_FOLDER_PATH + img_name + '.bmp', " - ", original_img, " - ", watermarked_img)
-		(_, alpha, svd_key) = read_parameters(img_name + '.bmp')
-
+	for original_img, watermarked_img, img_name in images:
 		for j in range(0, RUNS_PER_IMAGE):
 			attacks_list = get_random_attacks(randint(1, MAX_N_ATTACKS))
 			attacked_img, attacks_list = do_random_attacks(watermarked_img, attacks_list)
-
-			extracted_watermark = extract_watermark(original_img, img_name, attacked_img)
+			extracted_watermark = extract_watermark(original_img, img_name, attacked_img, level, subband)
 
 			# true positive population
-			scores.append(similarity(original_watermark, extracted_watermark))
+			sim = similarity(original_watermark, extracted_watermark) # Sometimes we get RuntimeWarning: invalid value encountered in double_scalars for some unkown reason
+			scores.append(sim)
 			labels.append(1)
+			
 
 			# perform multiple comparisons with random watermarks to better train the classifier against false positives
 			# TODO: verify that this actually works
@@ -159,5 +158,5 @@ def compute_thr_multiple_images(images, original_watermark, img_folder_path, sho
 				labels.append(0)
 				m += 1
 		i += 1
-
+	print(scores, labels)
 	return compute_ROC(scores, labels, show)

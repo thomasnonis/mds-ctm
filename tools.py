@@ -5,6 +5,7 @@ import pickle
 from transforms import wavedec2d, waverec2d
 from config import *
 import matplotlib.pyplot as plt
+import random
 
 
 def wpsnr_to_mark(wpsnr: float) -> int:
@@ -157,7 +158,7 @@ def read_parameters(img_name: str) -> tuple:
 	f.close()
 	return img_name, alpha, svd_key
 
-def import_images(img_folder_path: str) -> list:
+def import_images(img_folder_path: str, num_images: int, shuffle:bool=False) -> list:
 	"""Loads a list of all images contained in a folder and returns a list of (image, name) tuples
 	Args:
 		img_folder_path (str): Relative path to the folder containing the images (e.g. 'images/')
@@ -168,12 +169,15 @@ def import_images(img_folder_path: str) -> list:
 		exit('Error: Images folder not found')
 	
 	images = []
-	for img_filename in os.listdir(img_folder_path):
+	paths = os.listdir(img_folder_path)
+	if shuffle:
+		random.shuffle(paths)
+	for img_filename in paths[:num_images]:
 		# (image, name)
 		images.append((cv2.imread(img_folder_path + img_filename, cv2.IMREAD_GRAYSCALE), img_filename.split('.')[-2]))
 
-	n_images = len(images)
-	print('Loaded', n_images, 'image' + ('s' if n_images > 1 else ''))
+
+	print('Loaded', num_images, 'image' + ('s' if num_images > 1 else ''))
 	
 	return images
 
@@ -241,6 +245,7 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 		final_watermark += watermark
 	final_watermark = final_watermark / len(subbands)
 
+	# NOTE: Danger zone!
 	for i in range(0, MARK_SIZE):
 		for j in range(0, MARK_SIZE):
 			if final_watermark[i][j] >= 0.5: # Threshold from paper
