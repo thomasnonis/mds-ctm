@@ -6,8 +6,6 @@ import cv2
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 from random import randint
-import warnings
-warnings.filterwarnings("error")
 
 from attacks import do_random_attacks, get_random_attacks
 from tools import *
@@ -144,10 +142,8 @@ def compute_thr_multiple_images(images, original_watermark, level, subband, show
 			extracted_watermark = extract_watermark(original_img, img_name, attacked_img, level, subband)
 
 			# true positive population
-			sim = similarity(original_watermark, extracted_watermark) # Sometimes we get RuntimeWarning: invalid value encountered in double_scalars for some unkown reason
-			scores.append(sim)
-			labels.append(1)
-			
+			scores.append(similarity(original_watermark, extracted_watermark))
+			labels.append(1)			
 
 			# perform multiple comparisons with random watermarks to better train the classifier against false positives
 			# TODO: verify that this actually works
@@ -158,5 +154,4 @@ def compute_thr_multiple_images(images, original_watermark, level, subband, show
 				labels.append(0)
 				m += 1
 		i += 1
-	print(scores, labels)
 	return compute_ROC(scores, labels, show)
