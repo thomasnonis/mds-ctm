@@ -245,14 +245,6 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 		final_watermark += watermark
 	final_watermark = final_watermark / len(subbands)
 
-	# NOTE: Danger zone!
-	for i in range(0, MARK_SIZE):
-		for j in range(0, MARK_SIZE):
-			if final_watermark[i][j] >= 0.5: # Threshold from paper
-				final_watermark[i][j] = 1
-			else:
-				final_watermark[i][j] = 0
-
 	return final_watermark
 
 

@@ -72,7 +72,7 @@ for img in watermarked_imgs:
 				attacked_img, _ = do_random_attacks(watermarked_image,attacks_list)
 				extracted_watermark = extract_watermark(original_img, img_name, attacked_img,level,subband)
 				xs.append(wpsnr(original_img,attacked_img))
-				ys.append(similarity(watermark, extracted_watermark)) # Sometimes we get RuntimeWarning: invalid value encountered in double_scalars for some unkown reason
+				ys.append(similarity(watermark, extracted_watermark))
 			plt.plot(xs, ys, lw=2, label=img+'_'+'-'.join(subband)+'_'+str(level))
 
 plt.xlabel('WPSNR')
