@@ -125,21 +125,21 @@ def compute_ROC(scores, labels, show: bool = True):
 		plt.show()
 	return thr[idx_tpr[0][0]], tpr[idx_tpr[0][0]], fpr[idx_tpr[0][0]] # return thr
 
-def compute_thr_multiple_images(images, original_watermark, level, subband, show: bool = True):
+def compute_thr_multiple_images(images, original_watermark, alpha, level, subband, attacks, show: bool = True):
 	scores = []
 	labels = []
 	n_images = len(images)
 	i = 0
 	m = 0
+	attack_idx = 0
 	n_computations = n_images * RUNS_PER_IMAGE * N_FALSE_WATERMARKS_GENERATIONS
 	print('Total number of computations: %d' % n_computations)
-
+	
 	# step by step for clarity
 	for original_img, watermarked_img, img_name in images:
-		for j in range(0, RUNS_PER_IMAGE):
-			attacks_list = get_random_attacks(randint(1, MAX_N_ATTACKS))
-			attacked_img, attacks_list = do_random_attacks(watermarked_img, attacks_list)
-			extracted_watermark = extract_watermark(original_img, img_name, attacked_img, level, subband)
+		for j in range(attack_idx, attack_idx+RUNS_PER_IMAGE):
+			attacked_img, attacks_list = do_random_attacks(watermarked_img, attacks[j])
+			extracted_watermark = extract_watermark(original_img, img_name, attacked_img, alpha, level, subband)
 
 			# true positive population
 			scores.append(similarity(original_watermark, extracted_watermark))
@@ -148,10 +148,11 @@ def compute_thr_multiple_images(images, original_watermark, level, subband, show
 			# perform multiple comparisons with random watermarks to better train the classifier against false positives
 			# TODO: verify that this actually works
 			for k in range(0, N_FALSE_WATERMARKS_GENERATIONS):
-				print('{}/{} - Performed attack {}/{} on image {}/{} ({}) - false check {}/{} - attacks: {}'.format(m + 1, n_computations, j + 1, RUNS_PER_IMAGE, i + 1, n_images, img_name, k + 1, N_FALSE_WATERMARKS_GENERATIONS, attacks_list))
+				print('{}/{} - Performed attack {}/{} on image {}/{} ({}) - false check {}/{} - attacks: {}'.format(m + 1, n_computations, j%RUNS_PER_IMAGE, RUNS_PER_IMAGE, i + 1, n_images, img_name, k + 1, N_FALSE_WATERMARKS_GENERATIONS, attacks_list))
 				# true negative population
 				scores.append(similarity(generate_watermark(MARK_SIZE), extracted_watermark))
 				labels.append(0)
 				m += 1
 		i += 1
-	return compute_ROC(scores, labels, show)
+		attack_idx += RUNS_PER_IMAGE
+	return scores,labels,compute_ROC(scores, labels, show)

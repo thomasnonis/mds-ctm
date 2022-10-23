@@ -6,7 +6,8 @@ from transforms import wavedec2d, waverec2d
 from config import *
 import matplotlib.pyplot as plt
 import random
-
+import concurrent.futures
+import traceback
 
 def wpsnr_to_mark(wpsnr: float) -> int:
 	"""Convert WPSNR to a competition mark
@@ -129,18 +130,17 @@ def extract_from_svd(img, svd_key, alpha):
 
 	return watermark
 
-def save_parameters(img_name: str, alpha: float, svd_key: tuple) -> None:
+def save_parameters(img_name: str, svd_key: tuple) -> None:
 	"""Saves the necessary parameters for the detection into parameters/<img_name>_parameters.txt
 
 	Args:
 		img_name (str): Name of the image
-		alpha (float): Embedding strength coefficient
 		svd_key (tuple): Tuple containing the SVD key matrices for the reverse algorithm
 	"""
 	if not os.path.isdir('parameters/'):
 		os.mkdir('parameters/')
 	f = open('parameters/' + img_name + '_parameters.txt', 'wb')
-	pickle.dump((img_name, alpha, svd_key), f, protocol=2)
+	pickle.dump((img_name, svd_key), f, protocol=2)
 	f.close()
 
 def read_parameters(img_name: str) -> tuple:
@@ -154,9 +154,9 @@ def read_parameters(img_name: str) -> tuple:
 	"""
 	# print("IMGNAME: ", img_name)
 	f = open('parameters/' + img_name + '_parameters.txt', 'rb')
-	(img_name, alpha, svd_key) = pickle.load(f)
+	(img_name, svd_key) = pickle.load(f)
 	f.close()
-	return img_name, alpha, svd_key
+	return img_name, svd_key
 
 def import_images(img_folder_path: str, num_images: int, shuffle:bool=False) -> list:
 	"""Loads a list of all images contained in a folder and returns a list of (image, name) tuples
@@ -181,7 +181,7 @@ def import_images(img_folder_path: str, num_images: int, shuffle:bool=False) -> 
 	
 	return images
 
-def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray, level: int, subbands: list) -> np.ndarray:
+def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray, alpha: int, level: int, subbands: list) -> np.ndarray:
 	"""Extracts the watermark from a watermarked image by appling the reversed embedding algorithm,
 	provided that the proper configuration file and the original, unwatermarked, image are available.
 
@@ -225,7 +225,7 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 		watermarked_band_u, watermarked_band_s, watermarked_band_v = np.linalg.svd(watermarked_band)
 		watermarked_band_s = np.diag(watermarked_band_s)
 	
-		(_, alpha, svd_key) = read_parameters(img_name + '_' + subband + str(level))
+		(_, svd_key) = read_parameters(img_name + '_' + str(alpha) +'_' + subband + str(level))
 		# original_s_ll_d_u, original_s_ll_d_s, original_s_ll_d_v 
 		s_band_d = svd_key[0] @ watermarked_band_s @ svd_key[1]
 
@@ -277,7 +277,7 @@ def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarr
 			raise Exception(f"Subband {subband} does not exist")
 
 		band_svd, svd_key = embed_into_svd(band, watermark, alpha)
-		save_parameters(img_name + '_' + subband + str(level), alpha, svd_key)
+		save_parameters(img_name + '_' + str(alpha) +'_' + subband + str(level), svd_key)
 
 		if subband == "LL":
 			coeffs[0] = band_svd
@@ -318,3 +318,65 @@ def make_dwt_image(img_coeffs: list) -> np.ndarray:
 	img[0:size, 0:size] = img_coeffs[0]
 
 	return img
+
+def save_model(scores: list,labels: list,threshold: float, tpr: float, fpr: float, alpha: float, level: int, subband: list) -> None:
+	"""Saves the model trained models/model_<alpha>_<level>_<subband>.txt 
+	The scores and label are saved too in case we want to continue training
+
+	Args:
+		scores (list): Scores list
+		labels (list): Labels list
+		threshold (float): The threshold
+		tpr (float): The true positive rate
+		fpr (float): The false positive rate
+		alpha (float): The alpha used for embedding
+		level (int): The level used for embedding
+		subband (list): The subband(s) used for embedding 
+	"""
+	directory = 'models/'
+	if not os.path.isdir(directory):
+		os.mkdir(directory)
+	params = '_'.join([str(alpha),str(level),'-'.join(subband)])
+	f = open(directory + 'model_'+params,  'wb')
+	pickle.dump((scores, labels, threshold, tpr, fpr, alpha, level, subband), f, protocol=2)
+	f.close()
+
+def read_model(name: str) -> None:
+	"""Loads a model from a file
+
+	Args:
+		name (str): Name of the model to be loaded
+	"""
+	f = open('models/model_' + name, 'rb')
+	(scores, labels, threshold, tpr, fpr, alpha, level, subband) = pickle.load(f)
+	f.close()
+	return scores, labels, threshold, tpr, fpr, alpha, level, subband
+
+def create_model(images, watermark, alpha, level, subband, attacks, show_threshold, order_of_execution):
+	from measurements import compute_thr_multiple_images
+	watermarked_images = []
+	for original_img, img_name in images:
+		watermarked_img = embed_watermark(original_img, img_name, watermark, alpha, level, subband)
+		watermarked_images.append((original_img, watermarked_img, img_name))
+
+	scores, labels, (threshold, tpr, fpr) = compute_thr_multiple_images(watermarked_images, watermark, alpha, level, subband, attacks, show_threshold)
+
+	save_model(scores,labels,threshold, tpr, fpr, alpha, level, subband)
+	return order_of_execution, tpr, fpr, alpha, level, subband, threshold
+
+def multiprocessed_workload(function, work):
+	with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
+		future_to_report = {executor.submit(function, *unit_of_work, order_of_execution): unit_of_work for order_of_execution,unit_of_work in enumerate(work)}
+
+	tmp_results = []
+	for future in concurrent.futures.as_completed(future_to_report):
+		result = future_to_report[future]
+		try:
+			r = future.result()
+			tmp_results.append(r)
+		except Exception as exc:
+			print("Exception!", "{}".format('%r generated an exception: %s' % (result, traceback.format_exc())))
+	tmp_results = sorted(tmp_results, key = lambda x: x[0])
+	results = [result[1:] for result in tmp_results]
+	
+	return results
