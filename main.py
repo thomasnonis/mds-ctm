@@ -64,7 +64,7 @@ def main():
 			model_stats[model_name]['AVG SIM Succesful Attacks'] = 0
 		
 		# TODO: Find a better way of calculating the score
-		score = model_stats[model_name]['WPSNR Original-Watermarked'] * 10 + model_stats[model_name]['AVG WPSNR Succesful Attacks'] * model_stats[model_name]['AVG SIM Succesful Attacks']
+		score = model_stats[model_name]['WPSNR Original-Watermarked'] * 10 + model_stats[model_name]['AVG WPSNR Succesful Attacks'] * model_stats[model_name]['AVG SIM Succesful Attacks'] - 75 * successful
 		model_stats[model_name]['Score'] = score
 		if score > max_score:
 			max_score = score
