@@ -28,12 +28,11 @@ subband = DEFAULT_SUBBAND
 # Take ten random images
 for original_img, img_name in images:
 
-	watermarked_img = embed_watermark(original_img, img_name, watermark, alpha, level, subband)
+	watermarked_img = embed_watermark_tn(original_img, img_name, watermark, alpha, level, subband)
 
 	watermarked_images.append((original_img, watermarked_img, img_name))
 
 (threshold, tpr, fpr) = compute_thr_multiple_images(watermarked_images, watermark, level, subband, show_threshold)
-
 
 f = open('threshold.txt', 'w')
 f.write(str(threshold))

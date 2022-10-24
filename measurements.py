@@ -143,22 +143,9 @@ def compute_thr_multiple_images(images, original_watermark, level, subband, show
 	# step by step for clarity
 	for original_img, watermarked_img, img_name in images:
 		for j in range(0, RUNS_PER_IMAGE):
-<<<<<<< Updated upstream
 			attacks_list = get_random_attacks(randint(1, MAX_N_ATTACKS))
 			attacked_img, attacks_list = do_random_attacks(watermarked_img, attacks_list)
-			extracted_watermark = extract_watermark(original_img, img_name, attacked_img, level, subband)
-=======
-			attacked_img, attacks_list = random_attacks(watermarked_img)
-			extracted_watermark = extract_watermark(original_img, img_name, watermarked_img, attacked_img)
-
-			# plt.figure()
-			# plt.subplot(1,2,1)
-			# plt.imshow(original_watermark, cmap='gray')
-			# plt.subplot(1,2,2)
-			# plt.imshow(extracted_watermark, cmap='gray')
-			# plt.title('Extracted watermark')
-			# plt.show()
->>>>>>> Stashed changes
+			extracted_watermark = extract_watermark_tn(original_img, img_name, watermarked_img, attacked_img)
 
 			# true positive population
 			scores.append(similarity(original_watermark, extracted_watermark))
@@ -173,4 +160,5 @@ def compute_thr_multiple_images(images, original_watermark, level, subband, show
 				labels.append(0)
 				m += 1
 		i += 1
+	plt.show()
 	return compute_ROC(scores, labels, show)
