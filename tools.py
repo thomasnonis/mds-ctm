@@ -7,6 +7,8 @@ from config import *
 import matplotlib.pyplot as plt
 import random
 
+from config import *
+
 
 def wpsnr_to_mark(wpsnr: float) -> int:
 	"""Convert WPSNR to a competition mark
@@ -109,7 +111,11 @@ def embed_into_svd(img: np.ndarray, watermark: list, alpha: float) -> tuple:
 
 	return (watermarked, (svd_s_u, svd_s_v))
 
+<<<<<<< Updated upstream
 def extract_from_svd(img, svd_key, alpha):	
+=======
+def extract_from_svd(img, svd_key, alpha):  
+>>>>>>> Stashed changes
 	# Perform SVD decomposition of image
 	svd_w_u, svd_w_s, svd_w_v = np.linalg.svd(img)
 
@@ -181,6 +187,7 @@ def import_images(img_folder_path: str, num_images: int, shuffle:bool=False) -> 
 	
 	return images
 
+<<<<<<< Updated upstream
 def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray, level: int, subbands: list) -> np.ndarray:
 	"""Extracts the watermark from a watermarked image by appling the reversed embedding algorithm,
 	provided that the proper configuration file and the original, unwatermarked, image are available.
@@ -246,7 +253,35 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 	final_watermark = final_watermark / len(subbands)
 
 	return final_watermark
+=======
+def append_attack_to_list(attacks_list: str, attack_string: str) -> str:
+	"""Appends a string to another string, separating them with a comma
 
+	Args:
+		attacks_list (str): String to append to
+		attack_string (str): String to append
+
+	Returns:
+		str: Appended string
+	"""
+	if attacks_list != '':
+		attacks_list += ', '
+	return attacks_list + attack_string
+
+def split(array, nrows, ncols):
+	"""Split a matrix into sub-matrices."""
+	r, h = array.shape
+	size = array.shape[0] // nrows
+
+	mtx = np.ndarray((size, ncols, nrows))
+
+	for z in range(0, size):
+		for i in range(0, nrows):
+			for j in range(0, ncols):
+				mtx[z, i, j] = array[i*(z+1), j*(z+1)]
+>>>>>>> Stashed changes
+
+	return mtx
 
 def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, level, subbands: list) -> np.ndarray:
 	"""Embeds a watermark into the S component of the SVD decomposition of an image's LL DWT subband
@@ -261,6 +296,7 @@ def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarr
 	Returns:
 		np.ndarray: Watermarked image
 	"""
+<<<<<<< Updated upstream
 	coeffs = wavedec2d(original_img, level)
 
 	for subband in subbands:
@@ -318,3 +354,77 @@ def make_dwt_image(img_coeffs: list) -> np.ndarray:
 	img[0:size, 0:size] = img_coeffs[0]
 
 	return img
+=======
+	from measurements import nvf, csf
+	coeffs = wavedec2d(original_img, DWT_LEVEL)
+	h1 = coeffs[2][0]
+	h2 = coeffs[1][0]
+	v1 = coeffs[2][1]
+
+	watermarked_h2, svd_key = embed_into_svd(h2, watermark, alpha)
+	
+	h1_strength = nvf(csf(h1), 75, 3)
+	v1_strength = nvf(csf(v1), 75, 3)
+
+	# [0,1] to [-1,1]
+	watermark = (2 * watermark) - 1
+
+	for x in range(0, h1_strength.shape[0]):
+		for y in range(0, h1_strength.shape[1]):
+			h1[x][y] += (1-h1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * BETA
+			v1[x][y] += (1-v1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * BETA
+
+	save_parameters(img_name, alpha, svd_key)
+
+	coeffs[2] = (h1, v1, coeffs[2][2])
+	coeffs[1] = (watermarked_h2, coeffs[1][1], coeffs[1][2])
+	return waverec2d(coeffs)
+	
+def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray, attacked_img: np.ndarray) -> np.ndarray:
+	"""Extracts the watermark from a watermarked image by appling the reversed embedding algorithm,
+	provided that the proper configuration file and the original, unwatermarked, image are available.
+
+	Args:
+		original_img (np.ndarray): Original unwatermarked image
+		img_name (str): Name of the image
+		watermarked_img (np.ndarray): Image from which to extract the watermark
+
+	Returns:
+		np.ndarray: Extracted watermark
+	"""
+	from measurements import nvf, csf, similarity
+
+	(_, alpha, svd_key) = read_parameters(img_name)
+
+	original_coeffs = wavedec2d(original_img, DWT_LEVEL)
+	original_h1 = original_coeffs[2][0]
+	original_v1 = original_coeffs[2][1]
+
+	attacked_coeffs = wavedec2d(attacked_img, DWT_LEVEL)
+	attacked_h1 = attacked_coeffs[2][0]
+	attacked_h2 = attacked_coeffs[1][0]
+	attacked_v1 = attacked_coeffs[2][1]
+
+	attacked_watermarks = np.empty((1, MARK_SIZE, MARK_SIZE))
+
+	# This is of size 128x128, while all others are 256x256!
+	attacked_watermarks[0] = extract_from_svd(attacked_h2, svd_key, alpha)
+
+	original_h1_strength = nvf(csf(original_h1), 75, 3)
+	original_v1_strength = nvf(csf(original_v1), 75, 3)
+
+	attacked_watermark_h1 = attacked_h1 / (original_h1_strength * BETA)
+	attacked_watermark_v1 = attacked_v1 / (original_v1_strength * BETA)
+	
+
+	attacked_watermark_h1 = (attacked_watermark_h1 + 1) / 2
+	attacked_watermark_v1 = (attacked_watermark_v1 + 1) / 2
+
+	attacked_watermark_h1_mtx = split(attacked_watermark_h1, MARK_SIZE, MARK_SIZE)
+	attacked_watermark_v1_mtx = split(attacked_watermark_v1, MARK_SIZE, MARK_SIZE)
+	for i in range(0, attacked_watermark_h1_mtx.shape[0]):
+		np.append(attacked_watermarks, [attacked_watermark_h1_mtx[i]], axis=0)
+		np.append(attacked_watermarks, [attacked_watermark_v1_mtx[i]], axis=0)
+
+	return np.mean(attacked_watermarks, axis=0)
+>>>>>>> Stashed changes

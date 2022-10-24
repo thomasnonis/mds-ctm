@@ -1,3 +1,4 @@
+from difflib import diff_bytes
 import numpy as np
 import os
 from scipy.signal import convolve2d
@@ -24,8 +25,7 @@ def wpsnr(img1: np.ndarray, img2: np.ndarray):
 	if same is True:
 		return 9999999
 	
-	csf = np.genfromtxt('csf.csv', delimiter=',')
-	ew = convolve2d(difference, np.rot90(csf,2), mode='valid')
+	ew = csf(difference)
 	decibels = 20.0*np.log10(1.0/sqrt(np.mean(np.mean(ew**2)))) # this is something that can be optimized by using numerical values instead of db
 	return decibels
 
@@ -101,6 +101,12 @@ def nvf(img, D, window_size):
 
 	return 1/(1+theta*variance)
 
+def csf(img):
+	if not os.path.isfile('csf.csv'):  
+		os.system('python -m wget "https://drive.google.com/uc?export=download&id=1w43k1BTfrWm6X0rqAOQhrbX6JDhIKTRW" -o csf.csv')
+	csf = np.genfromtxt('csf.csv', delimiter=',')
+	return convolve2d(img, np.rot90(csf,2), mode='same')
+
 # Check if correct
 def compute_ROC(scores, labels, show: bool = True):
 	# compute ROC
@@ -137,9 +143,22 @@ def compute_thr_multiple_images(images, original_watermark, level, subband, show
 	# step by step for clarity
 	for original_img, watermarked_img, img_name in images:
 		for j in range(0, RUNS_PER_IMAGE):
+<<<<<<< Updated upstream
 			attacks_list = get_random_attacks(randint(1, MAX_N_ATTACKS))
 			attacked_img, attacks_list = do_random_attacks(watermarked_img, attacks_list)
 			extracted_watermark = extract_watermark(original_img, img_name, attacked_img, level, subband)
+=======
+			attacked_img, attacks_list = random_attacks(watermarked_img)
+			extracted_watermark = extract_watermark(original_img, img_name, watermarked_img, attacked_img)
+
+			# plt.figure()
+			# plt.subplot(1,2,1)
+			# plt.imshow(original_watermark, cmap='gray')
+			# plt.subplot(1,2,2)
+			# plt.imshow(extracted_watermark, cmap='gray')
+			# plt.title('Extracted watermark')
+			# plt.show()
+>>>>>>> Stashed changes
 
 			# true positive population
 			scores.append(similarity(original_watermark, extracted_watermark))
