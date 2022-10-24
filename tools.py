@@ -208,10 +208,10 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 			watermarked_band = watermarked_coeffs[1][0]
 		elif subband == "LH":
 			original_band = original_coeffs[1][1]
-			watermarked_band = watermarked_coeffs[1][0]
+			watermarked_band = watermarked_coeffs[1][1]
 		elif subband == "HH":
 			original_band = original_coeffs[1][2]
-			watermarked_band = watermarked_coeffs[1][0]
+			watermarked_band = watermarked_coeffs[1][2]
 		else:
 			raise Exception(f"Subband {subband} does not exist")
 	
@@ -330,7 +330,7 @@ def make_dwt_image(img_coeffs: list) -> np.ndarray:
 
 	return img
 
-def embed_watermark_tn(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, level, subbands: list) -> np.ndarray:
+def embed_watermark_tn(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, beta: float) -> np.ndarray:
 	from measurements import nvf, csf
 	coeffs = wavedec2d(original_img, DWT_LEVEL)
 	h1 = coeffs[2][0]
@@ -347,16 +347,16 @@ def embed_watermark_tn(original_img: np.ndarray, img_name: str, watermark: np.nd
 
 	for x in range(0, h1_strength.shape[0]):
 		for y in range(0, h1_strength.shape[1]):
-			h1[x][y] += (1-h1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * BETA
-			v1[x][y] += (1-v1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * BETA
+			h1[x][y] += (1-h1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * beta
+			v1[x][y] += (1-v1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * beta
 
-	save_parameters(img_name, alpha, svd_key)
+	save_parameters(img_name, svd_key)
 
 	coeffs[2] = (h1, v1, coeffs[2][2])
 	coeffs[1] = (watermarked_h2, coeffs[1][1], coeffs[1][2])
 	return waverec2d(coeffs)
 	
-def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray, attacked_img: np.ndarray) -> np.ndarray:
+def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray, alpha: float, beta: float) -> np.ndarray:
 	"""Extracts the watermark from a watermarked image by appling the reversed embedding algorithm,
 	provided that the proper configuration file and the original, unwatermarked, image are available.
 
@@ -370,13 +370,13 @@ def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_im
 	"""
 	from measurements import nvf, csf, similarity
 
-	(_, alpha, svd_key) = read_parameters(img_name)
+	(_, svd_key) = read_parameters(img_name)
 
 	original_coeffs = wavedec2d(original_img, DWT_LEVEL)
 	original_h1 = original_coeffs[2][0]
 	original_v1 = original_coeffs[2][1]
 
-	attacked_coeffs = wavedec2d(attacked_img, DWT_LEVEL)
+	attacked_coeffs = wavedec2d(watermarked_img, DWT_LEVEL)
 	attacked_h1 = attacked_coeffs[2][0]
 	attacked_h2 = attacked_coeffs[1][0]
 	attacked_v1 = attacked_coeffs[2][1]
@@ -389,8 +389,8 @@ def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_im
 	original_h1_strength = nvf(csf(original_h1), 75, 3)
 	original_v1_strength = nvf(csf(original_v1), 75, 3)
 
-	attacked_watermark_h1 = attacked_h1 / (original_h1_strength * BETA)
-	attacked_watermark_v1 = attacked_v1 / (original_v1_strength * BETA)
+	attacked_watermark_h1 = attacked_h1 / (original_h1_strength * beta)
+	attacked_watermark_v1 = attacked_v1 / (original_v1_strength * beta)
 	
 
 	attacked_watermark_h1 = (attacked_watermark_h1 + 1) / 2
@@ -403,7 +403,7 @@ def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_im
 		np.append(attacked_watermarks, [attacked_watermark_v1_mtx[i]], axis=0)
 
 	return np.mean(attacked_watermarks, axis=0)
-def save_model(scores: list,labels: list,threshold: float, tpr: float, fpr: float, alpha: float, level: int, subband: list) -> None:
+def save_model(scores: list,labels: list,threshold: float, tpr: float, fpr: float, new_params) -> None:
 	"""Saves the model trained models/model_<alpha>_<level>_<subband>.txt 
 	The scores and label are saved too in case we want to continue training
 
@@ -420,9 +420,16 @@ def save_model(scores: list,labels: list,threshold: float, tpr: float, fpr: floa
 	directory = 'models/'
 	if not os.path.isdir(directory):
 		os.mkdir(directory)
-	params = '_'.join([str(alpha),str(level),'-'.join(subband)])
+	params = []
+	for x in new_params:
+		if type(x) == list:
+			params.append('-'.join(x))
+		else:
+			params.append(str(x))
+
+	params = '_'.join(params)
 	f = open(directory + 'model_'+params,  'wb')
-	pickle.dump((scores, labels, threshold, tpr, fpr, alpha, level, subband), f, protocol=2)
+	pickle.dump((scores, labels, threshold, tpr, fpr, new_params), f, protocol=2)
 	f.close()
 
 def read_model(name: str) -> None:
@@ -432,25 +439,49 @@ def read_model(name: str) -> None:
 		name (str): Name of the model to be loaded
 	"""
 	f = open('models/model_' + name, 'rb')
-	(scores, labels, threshold, tpr, fpr, alpha, level, subband) = pickle.load(f)
-	f.close()
-	return scores, labels, threshold, tpr, fpr, alpha, level, subband
+	values = list(pickle.load(f))
 
-def create_model(images, watermark, alpha, level, subband, attacks, show_threshold, order_of_execution):
+	(scores, labels, threshold, tpr, fpr, params) = (values[0], values[1], values[2], values[3], values[4], values[5])
+	f.close()
+	return scores, labels, threshold, tpr, fpr, params
+
+def create_model(params, order_of_execution):
 	from measurements import compute_thr_multiple_images
 	watermarked_images = []
+	images = params[0]
+	params = params[1:]
+	embedding_function = params[0]
+	extraction_function = params[1]
+	attacks = params[-2]
+	show_threshold = params[-1]
+	watermark = params[2]
+	new_params = ()
 	for original_img, img_name in images:
-		watermarked_img = embed_watermark(original_img, img_name, watermark, alpha, level, subband)
+		watermarked_img = None
+		if embedding_function == embed_watermark:
+			
+			alpha = params[3]
+			level = params[4]
+			subband = params[5]	
+			new_params = (alpha, level, subband) # Doing this in a loop is useless, is needed only once
+			watermarked_img = embed_watermark(original_img, img_name, watermark, alpha, level, subband)
+		elif embedding_function == embed_watermark_tn:
+			alpha = params[3]
+			beta = params[4]
+			new_params = (alpha, beta) # Doing this in a loop is useless, is needed only once
+			watermarked_img = embed_watermark_tn(original_img, img_name, watermark, alpha, beta)
+		else:
+				print(f'Embedding function {embedding_function} does not exist!')
 		watermarked_images.append((original_img, watermarked_img, img_name))
 
-	scores, labels, (threshold, tpr, fpr) = compute_thr_multiple_images(watermarked_images, watermark, alpha, level, subband, attacks, show_threshold)
-
-	save_model(scores,labels,threshold, tpr, fpr, alpha, level, subband)
-	return order_of_execution, tpr, fpr, alpha, level, subband, threshold
+	scores, labels, (threshold, tpr, fpr) = compute_thr_multiple_images(extraction_function, watermarked_images, watermark, new_params, attacks, show_threshold)
+	save_model(scores,labels,threshold, tpr, fpr, new_params)
+	return order_of_execution, threshold, tpr, fpr, new_params
 
 def multiprocessed_workload(function, work):
 	with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
-		future_to_report = {executor.submit(function, *unit_of_work, order_of_execution): unit_of_work for order_of_execution,unit_of_work in enumerate(work)}
+		#future_to_report = {executor.submit(function, *unit_of_work, order_of_execution): unit_of_work for order_of_execution,unit_of_work in enumerate(work)}
+		future_to_report = {executor.submit(function, unit_of_work, order_of_execution): unit_of_work for order_of_execution,unit_of_work in enumerate(work)}
 
 	tmp_results = []
 	for future in concurrent.futures.as_completed(future_to_report):

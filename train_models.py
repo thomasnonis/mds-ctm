@@ -21,13 +21,25 @@ def main():
 			attacks.append(get_random_attacks(randint(1, MAX_N_ATTACKS)))
 
 	work = []
-	alpha_range = np.arange(0.1, 1, 0.1) * DEFAULT_ALPHA
+	# TODO: Avoid retraining models already trained, or implement logic to continue training already trained models with new samples
+	'''
+	alpha_range = np.arange(0.1, 0.4 , 0.1) * DEFAULT_ALPHA
 	for alpha in alpha_range:
 		alpha = int(alpha)
 		for level in [DWT_LEVEL-1,DWT_LEVEL,DWT_LEVEL+1]:
-			for subband in [["LL"]]:
-				work.append((images, watermark, alpha, level, subband, attacks, show_threshold))
-		
+			for subband in [["LL"], ["HL","LH"]]:
+				work.append((images, embed_watermark, extract_watermark, watermark, alpha, level, subband, attacks, show_threshold))
+	'''
+	
+	alpha_range = np.arange(0.5, 1, 0.2) * ALPHA_TN
+	beta_range = np.arange(0.01, BETA+0.1, 0.04)
+	for alpha in alpha_range:
+		alpha = round(alpha,2)
+		for beta in beta_range:
+			beta = round(beta,2)
+			work.append((images,embed_watermark_tn, extract_watermark_tn, watermark, alpha, beta, attacks, show_threshold))
+	#'''
+	
 	result = multiprocessed_workload(create_model,work)
 	print(result)
 

@@ -131,7 +131,7 @@ def compute_ROC(scores, labels, show: bool = True):
 		plt.show()
 	return thr[idx_tpr[0][0]], tpr[idx_tpr[0][0]], fpr[idx_tpr[0][0]] # return thr
 
-def compute_thr_multiple_images(images, original_watermark, alpha, level, subband, attacks, show: bool = True):
+def compute_thr_multiple_images(extraction_function, images, original_watermark, params, attacks, show: bool = True):
 	scores = []
 	labels = []
 	n_images = len(images)
@@ -145,7 +145,18 @@ def compute_thr_multiple_images(images, original_watermark, alpha, level, subban
 	for original_img, watermarked_img, img_name in images:
 		for j in range(attack_idx, attack_idx+RUNS_PER_IMAGE):
 			attacked_img, attacks_list = do_random_attacks(watermarked_img, attacks[j])
-			extracted_watermark = extract_watermark(original_img, img_name, attacked_img, alpha, level, subband)
+			extracted_watermark = None
+			if extraction_function == extract_watermark:
+				alpha = params[0]
+				level = params[1]
+				subband = params[2]
+				extracted_watermark = extract_watermark(original_img, img_name, attacked_img, alpha, level, subband)
+			elif extraction_function == extract_watermark_tn:
+				alpha = params[0]
+				beta = params[1]
+				extracted_watermark = extract_watermark_tn(original_img, img_name, attacked_img, alpha, beta)
+			else:
+				print(f'Extraction function {extraction_function} does not exist!')
 
 			# true positive population
 			scores.append(similarity(original_watermark, extracted_watermark))
