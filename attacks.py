@@ -7,6 +7,7 @@ import cv2
 from PIL import Image
 import os
 from random import randint, random
+import uuid
 
 from config import *
 
@@ -50,10 +51,11 @@ def awgn(img, mean, std, seed):
 def jpeg_compression(img, QF):
 	img = Image.fromarray(img)
 	img = img.convert('L')
-	img.save('tmp.jpg',"JPEG", quality=QF)
-	attacked = Image.open('tmp.jpg')
+	id = str(uuid.uuid1()) + ".jpg"
+	img.save(id,"JPEG", quality=QF)
+	attacked = Image.open(id)
 	attacked = np.asarray(attacked,dtype=np.uint8)
-	os.remove('tmp.jpg')
+	os.remove(id)
 	return attacked
 
 
