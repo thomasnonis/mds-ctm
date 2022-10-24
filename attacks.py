@@ -1,5 +1,5 @@
 from scipy.ndimage.filters import gaussian_filter
-from scipy.signal import medfilt
+from scipy.signal import medfilt2d
 import matplotlib as mpl
 from skimage.transform import rescale, resize as skimage_resize
 import numpy as np
@@ -32,7 +32,7 @@ def sharpen(img, sigma, alpha):
 	return img + alpha * (img - blurred)
 
 def median(img, kernel_size):
-	return medfilt(img, kernel_size)
+	return medfilt2d(img, kernel_size)
 
 def resize(img, scale):
 	x, y = img.shape
