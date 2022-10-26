@@ -110,9 +110,15 @@ def embed_into_svd(img: np.ndarray, watermark: list, alpha: float) -> tuple:
 
 	return (watermarked, (svd_s_u, svd_s_v))
 
-def extract_from_svd(img, svd_key, alpha):  
-	# Perform SVD decomposition of image
-	svd_w_u, svd_w_s, svd_w_v = np.linalg.svd(img)
+def extract_from_svd(original_img,watermarked_img, svd_key, alpha):  
+	# Perform SVD decomposition of original_img
+	svd_o_u, svd_o_s, svd_o_v = np.linalg.svd(original_img)
+
+	# Convert S from a 1D vector to a 2D diagonal matrix
+	svd_o_s = np.diag(svd_o_s)
+
+	# Perform SVD decomposition of watermarked_img
+	svd_w_u, svd_w_s, svd_w_v = np.linalg.svd(watermarked_img)
 
 	# Convert S from a 1D vector to a 2D diagonal matrix
 	svd_w_s = np.diag(svd_w_s)
@@ -126,7 +132,7 @@ def extract_from_svd(img, svd_key, alpha):
 	# Extract the watermark
 	for i in range(0,MARK_SIZE):
 		for j in range(0,MARK_SIZE):
-			watermark[i][j] = (s_ll_d[i][j] - svd_w_s[i][j]) / alpha
+			watermark[i][j] = (s_ll_d[i][j] - svd_o_s[i][j]) / alpha
 
 	return watermark
 
@@ -216,25 +222,8 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 			raise Exception(f"Subband {subband} does not exist")
 	
 	
-
-		original_band_u, original_band_s, original_band_v = np.linalg.svd(original_band)
-		original_band_s = np.diag(original_band_s)
-
-		watermarked_band_u, watermarked_band_s, watermarked_band_v = np.linalg.svd(watermarked_band)
-		watermarked_band_s = np.diag(watermarked_band_s)
-	
 		(_, svd_key) = read_parameters(img_name + '_' + str(alpha) +'_' + subband + str(level))
-		# original_s_ll_d_u, original_s_ll_d_s, original_s_ll_d_v 
-		s_band_d = svd_key[0] @ watermarked_band_s @ svd_key[1]
-
-		# Initialize the watermark matrix
-		watermark = np.zeros([MARK_SIZE, MARK_SIZE], dtype=np.float64)
-		
-		# Extract the watermark
-		
-		for i in range(0,MARK_SIZE):
-			for j in range(0,MARK_SIZE):
-				watermark[i][j] = (s_band_d[i][j] - original_band_s[i][j]) / alpha
+		watermark = extract_from_svd(original_band, watermarked_band, svd_key, alpha)
 		watermarks.append(watermark)
 	
 	final_watermark = np.zeros([MARK_SIZE, MARK_SIZE], dtype=np.float64)
@@ -374,6 +363,7 @@ def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_im
 
 	original_coeffs = wavedec2d(original_img, DWT_LEVEL)
 	original_h1 = original_coeffs[2][0]
+	original_h2 = original_coeffs[1][0]
 	original_v1 = original_coeffs[2][1]
 
 	attacked_coeffs = wavedec2d(watermarked_img, DWT_LEVEL)
@@ -384,8 +374,8 @@ def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_im
 	attacked_watermarks = np.empty((1, MARK_SIZE, MARK_SIZE))
 
 	# This is of size 128x128, while all others are 256x256!
-	attacked_watermarks[0] = extract_from_svd(attacked_h2, svd_key, alpha)
-
+	attacked_watermarks[0] = extract_from_svd(original_h2,attacked_h2, svd_key, alpha)
+	#show_images([(attacked_watermarks[0],"Extracted from svd")],1,1)
 	original_h1_strength = nvf(csf(original_h1), 75, 3)
 	original_v1_strength = nvf(csf(original_v1), 75, 3)
 
