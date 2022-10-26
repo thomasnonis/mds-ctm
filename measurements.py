@@ -74,16 +74,18 @@ def local_variance(img, i, j, window_size):
 		j_min = 0
 	elif j_max > img.shape[1]:
 		j_max = img.shape[1]
-
 	mean = np.mean(img[i_min:i_max, j_min:j_max])
 
 	variance = 0
-	for x in range(i-floor(window_size/2), i+floor(window_size/2)):
-		for y in range(j-floor(window_size/2), j+floor(window_size/2)):
+	cnt = 0
+	for x in range(i_min, i_max):
+		for y in range(j_min, j_max):
 			if x >= 0 and x < img.shape[0] and y >= 0 and y < img.shape[1]:
+				cnt += 1
 				variance += (img[x, y] - mean)**2
+	
+	variance = variance / cnt
 
-	variance = variance / ((window_size*window_size) - 1)
 	return variance
 
 def nvf(img, D, window_size):
