@@ -6,7 +6,7 @@ from attacks import *
 from measurements import *
 from transforms import *
 from tools import *
-
+from detection_failedfouriertransform import *
 
 def main():
 	# Get one random image

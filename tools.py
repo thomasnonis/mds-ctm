@@ -3,11 +3,13 @@ import numpy as np
 import cv2
 import pickle
 from transforms import wavedec2d, waverec2d
-from config import *
 import matplotlib.pyplot as plt
 import random
 import concurrent.futures
 import traceback
+
+from config import *
+from detection_failedfouriertransform import *
 
 def wpsnr_to_mark(wpsnr: float) -> int:
 	"""Convert WPSNR to a competition mark
@@ -77,59 +79,6 @@ def show_images(list_of_images: list, rows: int, columns: int, show: bool = True
 	if show is True:
 		plt.show()
 
-
-def embed_into_svd(img: np.ndarray, watermark: list, alpha: float) -> tuple:
-	"""Embeds the watermark into the S component of the SVD decomposition of the image
-
-	Args:
-		img (np.ndarray): Image in which to embed the watermark
-		watermark (list): Watermark to embed
-		alpha (float): Embedding strength coefficient
-
-	Returns:
-		tuple: (Watermarked image: np.ndarray, SVD key matrices: tuple)
-	"""
-	(svd_u, svd_s, svd_v) = np.linalg.svd(img)
-
-	# Convert S from a 1D vector to a 2D diagonal matrix
-	svd_s = np.diag(svd_s)
-
-	# Embed the watermark in the SVD matrix
-	for x in range(0, watermark.shape[0]):
-		for y in range(0, watermark.shape[1]):
-			svd_s[x][y] += alpha * watermark[x][y]
-
-	(svd_s_u, svd_s_s, svd_s_v) = np.linalg.svd(svd_s)
-
-	# Convert S from a 1D vector to a 2D diagonal matrix
-	svd_s_s = np.diag(svd_s_s)
-
-	# Recompose matrices from SVD decomposition
-	watermarked = svd_u @ svd_s_s @ svd_v
-	# key = svd_s_u @ svd_s @ svd_s_v
-
-	return (watermarked, (svd_s_u, svd_s_v))
-
-def extract_from_svd(img, svd_key, alpha):  
-	# Perform SVD decomposition of image
-	svd_w_u, svd_w_s, svd_w_v = np.linalg.svd(img)
-
-	# Convert S from a 1D vector to a 2D diagonal matrix
-	svd_w_s = np.diag(svd_w_s)
-
-	# Reconstruct S component using embedding key components
-	s_ll_d = svd_key[0] @ svd_w_s @ svd_key[1]
-
-	# Initialize the watermark matrix
-	watermark = np.zeros([MARK_SIZE, MARK_SIZE], dtype=np.float64)
-	
-	# Extract the watermark
-	for i in range(0,MARK_SIZE):
-		for j in range(0,MARK_SIZE):
-			watermark[i][j] = (s_ll_d[i][j] - svd_w_s[i][j]) / alpha
-
-	return watermark
-
 def save_parameters(img_name: str, svd_key: tuple) -> None:
 	"""Saves the necessary parameters for the detection into parameters/<img_name>_parameters.txt
 
@@ -180,6 +129,110 @@ def import_images(img_folder_path: str, num_images: int, shuffle:bool=False) -> 
 	print('Loaded', num_images, 'image' + ('s' if num_images > 1 else ''))
 	
 	return images
+
+def embed_into_svd(img: np.ndarray, watermark: list, alpha: float) -> tuple:
+	"""Embeds the watermark into the S component of the SVD decomposition of the image
+
+	Args:
+		img (np.ndarray): Image in which to embed the watermark
+		watermark (list): Watermark to embed
+		alpha (float): Embedding strength coefficient
+
+	Returns:
+		tuple: (Watermarked image: np.ndarray, SVD key matrices: tuple)
+	"""
+	(svd_u, svd_s, svd_v) = np.linalg.svd(img)
+
+	# Convert S from a 1D vector to a 2D diagonal matrix
+	svd_s = np.diag(svd_s)
+
+	# Embed the watermark in the SVD matrix
+	for x in range(0, watermark.shape[0]):
+		for y in range(0, watermark.shape[1]):
+			svd_s[x][y] += alpha * watermark[x][y]
+
+	(svd_s_u, svd_s_s, svd_s_v) = np.linalg.svd(svd_s)
+
+	# Convert S from a 1D vector to a 2D diagonal matrix
+	svd_s_s = np.diag(svd_s_s)
+
+	# Recompose matrices from SVD decomposition
+	watermarked = svd_u @ svd_s_s @ svd_v
+	# key = svd_s_u @ svd_s @ svd_s_v
+
+	return (watermarked, (svd_s_u, svd_s_v))
+
+def embed_watermark_tn(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, level, subbands: list) -> np.ndarray:
+	from measurements import nvf, csf
+	coeffs = wavedec2d(original_img, DWT_LEVEL)
+	h1 = coeffs[2][0]
+	h2 = coeffs[1][0]
+	v1 = coeffs[2][1]
+
+	watermarked_h2, svd_key = embed_into_svd(h2, watermark, alpha)
+	
+	h1_strength = nvf(csf(h1), 75, 3)
+	v1_strength = nvf(csf(v1), 75, 3)
+
+	# [0,1] to [-1,1]
+	watermark = (2 * watermark) - 1
+
+	for x in range(0, h1_strength.shape[0]):
+		for y in range(0, h1_strength.shape[1]):
+			h1[x][y] += (1-h1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * BETA
+			v1[x][y] += (1-v1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * BETA
+
+	save_parameters(img_name, alpha, svd_key)
+
+	coeffs[2] = (h1, v1, coeffs[2][2])
+	coeffs[1] = (watermarked_h2, coeffs[1][1], coeffs[1][2])
+	return waverec2d(coeffs)
+	
+
+def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, level, subbands: list) -> np.ndarray:
+	"""Embeds a watermark into the S component of the SVD decomposition of an image's LL DWT subband
+
+	Args:
+		original_img (np.ndarray): Image in which to embed the watermark
+		img_name (str): Name of the image
+		watermark (np.ndarray): Watermark to embed
+		alpha (float): Watermark embedding strength coefficient
+		subbands (list): List of subbands where to embed the watermark
+
+	Returns:
+		np.ndarray: Watermarked image
+	"""
+	coeffs = wavedec2d(original_img, level)
+
+	for subband in subbands:
+		band = None
+		if subband == "LL":
+			band = coeffs[0]
+		elif subband == "HL":
+			band = coeffs[1][0]
+		elif subband == "LH":
+			band = coeffs[1][1]
+		elif subband == "HH":
+			band = coeffs[1][2]
+		else:
+			raise Exception(f"Subband {subband} does not exist")
+
+		band_svd, svd_key = embed_into_svd(band, watermark, alpha)
+		save_parameters(img_name + '_' + subband + str(level), alpha, svd_key)
+
+		if subband == "LL":
+			coeffs[0] = band_svd
+		elif subband == "HL":
+			coeffs[1] = (band_svd, coeffs[1][1], coeffs[1][2])
+		elif subband == "LH":
+			coeffs[1] = (coeffs[1][0], band_svd, coeffs[1][2])
+			band = coeffs[1][1]
+		elif subband == "HH":
+			coeffs[1] = (coeffs[1][0], coeffs[1][1], band_svd)
+		else:
+			raise Exception(f"Subband {subband} does not exist")
+		
+	return waverec2d(coeffs)
 
 def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray, alpha: int, level: int, subbands: list) -> np.ndarray:
 	"""Extracts the watermark from a watermarked image by appling the reversed embedding algorithm,
@@ -245,65 +298,6 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 
 	return final_watermark
 
-def split(array, nrows, ncols):
-	"""Split a matrix into sub-matrices."""
-	r, h = array.shape
-	size = array.shape[0] // nrows
-
-	mtx = np.ndarray((size, ncols, nrows))
-
-	for z in range(0, size):
-		for i in range(0, nrows):
-			for j in range(0, ncols):
-				mtx[z, i, j] = array[i*(z+1), j*(z+1)]
-
-	return mtx
-
-def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, level, subbands: list) -> np.ndarray:
-	"""Embeds a watermark into the S component of the SVD decomposition of an image's LL DWT subband
-
-	Args:
-		original_img (np.ndarray): Image in which to embed the watermark
-		img_name (str): Name of the image
-		watermark (np.ndarray): Watermark to embed
-		alpha (float): Watermark embedding strength coefficient
-		subbands (list): List of subbands where to embed the watermark
-
-	Returns:
-		np.ndarray: Watermarked image
-	"""
-	coeffs = wavedec2d(original_img, level)
-
-	for subband in subbands:
-		band = None
-		if subband == "LL":
-			band = coeffs[0]
-		elif subband == "HL":
-			band = coeffs[1][0]
-		elif subband == "LH":
-			band = coeffs[1][1]
-		elif subband == "HH":
-			band = coeffs[1][2]
-		else:
-			raise Exception(f"Subband {subband} does not exist")
-
-		band_svd, svd_key = embed_into_svd(band, watermark, alpha)
-		save_parameters(img_name + '_' + str(alpha) +'_' + subband + str(level), svd_key)
-
-		if subband == "LL":
-			coeffs[0] = band_svd
-		elif subband == "HL":
-			coeffs[1] = (band_svd, coeffs[1][1], coeffs[1][2])
-		elif subband == "LH":
-			coeffs[1] = (coeffs[1][0], band_svd, coeffs[1][2])
-			band = coeffs[1][1]
-		elif subband == "HH":
-			coeffs[1] = (coeffs[1][0], coeffs[1][1], band_svd)
-		else:
-			raise Exception(f"Subband {subband} does not exist")
-		
-	return waverec2d(coeffs)
-
 def make_dwt_image(img_coeffs: list) -> np.ndarray:
 	"""Creates a DWT image from a given set of DWT coefficients
 
@@ -329,80 +323,7 @@ def make_dwt_image(img_coeffs: list) -> np.ndarray:
 	img[0:size, 0:size] = img_coeffs[0]
 
 	return img
-
-def embed_watermark_tn(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, beta: float) -> np.ndarray:
-	from measurements import nvf, csf
-	coeffs = wavedec2d(original_img, DWT_LEVEL)
-	h1 = coeffs[2][0]
-	h2 = coeffs[1][0]
-	v1 = coeffs[2][1]
-
-	watermarked_h2, svd_key = embed_into_svd(h2, watermark, alpha)
 	
-	h1_strength = nvf(csf(h1), 75, 3)
-	v1_strength = nvf(csf(v1), 75, 3)
-
-	# [0,1] to [-1,1]
-	watermark = (2 * watermark) - 1
-
-	for x in range(0, h1_strength.shape[0]):
-		for y in range(0, h1_strength.shape[1]):
-			h1[x][y] += (1-h1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * beta
-			v1[x][y] += (1-v1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * beta
-
-	save_parameters(img_name, svd_key)
-
-	coeffs[2] = (h1, v1, coeffs[2][2])
-	coeffs[1] = (watermarked_h2, coeffs[1][1], coeffs[1][2])
-	return waverec2d(coeffs)
-	
-def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray, alpha: float, beta: float) -> np.ndarray:
-	"""Extracts the watermark from a watermarked image by appling the reversed embedding algorithm,
-	provided that the proper configuration file and the original, unwatermarked, image are available.
-
-	Args:
-		original_img (np.ndarray): Original unwatermarked image
-		img_name (str): Name of the image
-		watermarked_img (np.ndarray): Image from which to extract the watermark
-
-	Returns:
-		np.ndarray: Extracted watermark
-	"""
-	from measurements import nvf, csf, similarity
-
-	(_, svd_key) = read_parameters(img_name)
-
-	original_coeffs = wavedec2d(original_img, DWT_LEVEL)
-	original_h1 = original_coeffs[2][0]
-	original_v1 = original_coeffs[2][1]
-
-	attacked_coeffs = wavedec2d(watermarked_img, DWT_LEVEL)
-	attacked_h1 = attacked_coeffs[2][0]
-	attacked_h2 = attacked_coeffs[1][0]
-	attacked_v1 = attacked_coeffs[2][1]
-
-	attacked_watermarks = np.empty((1, MARK_SIZE, MARK_SIZE))
-
-	# This is of size 128x128, while all others are 256x256!
-	attacked_watermarks[0] = extract_from_svd(attacked_h2, svd_key, alpha)
-
-	original_h1_strength = nvf(csf(original_h1), 75, 3)
-	original_v1_strength = nvf(csf(original_v1), 75, 3)
-
-	attacked_watermark_h1 = attacked_h1 / (original_h1_strength * beta)
-	attacked_watermark_v1 = attacked_v1 / (original_v1_strength * beta)
-	
-
-	attacked_watermark_h1 = (attacked_watermark_h1 + 1) / 2
-	attacked_watermark_v1 = (attacked_watermark_v1 + 1) / 2
-
-	attacked_watermark_h1_mtx = split(attacked_watermark_h1, MARK_SIZE, MARK_SIZE)
-	attacked_watermark_v1_mtx = split(attacked_watermark_v1, MARK_SIZE, MARK_SIZE)
-	for i in range(0, attacked_watermark_h1_mtx.shape[0]):
-		np.append(attacked_watermarks, [attacked_watermark_h1_mtx[i]], axis=0)
-		np.append(attacked_watermarks, [attacked_watermark_v1_mtx[i]], axis=0)
-
-	return np.mean(attacked_watermarks, axis=0)
 def save_model(scores: list,labels: list,threshold: float, tpr: float, fpr: float, new_params) -> None:
 	"""Saves the model trained models/model_<alpha>_<level>_<subband>.txt 
 	The scores and label are saved too in case we want to continue training
