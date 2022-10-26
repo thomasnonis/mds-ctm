@@ -5,11 +5,17 @@ import os
 from scipy.signal import convolve2d
 from math import sqrt
 
-DETECTION_THRESHOLD = 0
-MARK_SIZE = 0
-BETA = 0
-ALPHA = 0
+# ////VARIABLES START////
+DETECTION_THRESHOLD = 12
+MARK_SIZE = 32
+ALPHA = 0.1
+BETA = 0.05
 DWT_LEVEL = 2
+svd_keys = {}
+alpha = {}
+beta = {}
+# ////VARIABLES END////
+
 TEAM_NAME = 'failedfouriertransform'
 
 alpha = {}
@@ -94,11 +100,14 @@ def nvf(img, D, window_size):
 	return 1/(1+theta*variance)
 
 def extract_from_svd(original_img, watermarked_img, svd_key, alpha):  
-	# Perform SVD decomposition of watermarked image
-	svd_w_u, svd_w_s, svd_w_v = np.linalg.svd(watermarked_img)
+	# Perform SVD decomposition of original_img
+	_, svd_o_s, _ = np.linalg.svd(original_img)
 
-	# Perform SVD decomposition of original image
-	svd_o_u, svd_o_s, svd_o_v = np.linalg.svd(original_img)
+	# Convert S from a 1D vector to a 2D diagonal matrix
+	svd_o_s = np.diag(svd_o_s)
+
+	# Perform SVD decomposition of watermarked_img
+	_, svd_w_s, _ = np.linalg.svd(watermarked_img)
 
 	# Convert S from a 1D vector to a 2D diagonal matrix
 	svd_w_s = np.diag(svd_w_s)

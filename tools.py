@@ -269,25 +269,8 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 			raise Exception(f"Subband {subband} does not exist")
 	
 	
-
-		original_band_u, original_band_s, original_band_v = np.linalg.svd(original_band)
-		original_band_s = np.diag(original_band_s)
-
-		watermarked_band_u, watermarked_band_s, watermarked_band_v = np.linalg.svd(watermarked_band)
-		watermarked_band_s = np.diag(watermarked_band_s)
-	
 		(_, svd_key) = read_parameters(img_name + '_' + str(alpha) +'_' + subband + str(level))
-		# original_s_ll_d_u, original_s_ll_d_s, original_s_ll_d_v 
-		s_band_d = svd_key[0] @ watermarked_band_s @ svd_key[1]
-
-		# Initialize the watermark matrix
-		watermark = np.zeros([MARK_SIZE, MARK_SIZE], dtype=np.float64)
-		
-		# Extract the watermark
-		
-		for i in range(0,MARK_SIZE):
-			for j in range(0,MARK_SIZE):
-				watermark[i][j] = (s_band_d[i][j] - original_band_s[i][j]) / alpha
+		watermark = extract_from_svd(original_band, watermarked_band, svd_key, alpha)
 		watermarks.append(watermark)
 	
 	final_watermark = np.zeros([MARK_SIZE, MARK_SIZE], dtype=np.float64)
@@ -416,3 +399,67 @@ def multiprocessed_workload(function, work):
 	results = [result[1:] for result in tmp_results]
 	
 	return results
+
+start_string = '# ////VARIABLES START////'
+end_string = '# ////VARIABLES END////'
+
+def update_parameters(filename, alpha, beta, svd_keys, **kwargs):
+	with open(filename, 'r') as file:
+		# read a list of lines into data
+		data = file.readlines()
+
+	start_line = -1
+	end_line = -1
+
+	for line in range(len(data)):
+		if data[line].find(start_string) != -1:
+			start_line = line
+		
+		if data[line].find(end_string) != -1:
+			end_line = line
+
+	string = ''
+	for key in kwargs.keys():
+		if type(kwargs[key]) !=dict:
+			string += key + ' = ' + str(kwargs[key]) + '\n'
+
+	# keys must be a dictionary with the following structure: key['lena'] = [(svd_u, svd_u)]
+	string += 'svd_keys = {}'
+	for keys_key in svd_keys.keys():
+		string += '\nsvd_keys[\'{}\']'.format(keys_key) + ' = (' + np.array2string(svd_keys[keys_key][0], separator=',', suppress_small=False, threshold = 9999999, max_line_width = 9999999).replace('\n', '') + '), (' + np.array2string(svd_keys[keys_key][1], separator=',', suppress_small=False, threshold = 9999999, max_line_width = 9999999).replace('\n', '') + ')'
+
+	string += '\nalpha = {}'
+	for keys_key in alpha.keys():
+		string += '\nalpha[\'{}\']'.format(keys_key) + ' = ' + str(alpha[keys_key])
+
+	string += '\nbeta = {}'
+	for keys_key in beta.keys():
+		string += '\nbeta[\'{}\']'.format(keys_key) + ' = ' + str(beta[keys_key])
+
+	if start_line == -1 or end_line == -1:
+		start_line = 0
+		end_line = 0
+		data[0] = start_string + '\n' + string + '\n' + end_string.replace('\n', '') + '\n' + data[0]
+	else:
+		data[start_line:end_line+1] = start_string + '\n' + string + '\n' + end_string.replace('\n', '') + '\n'
+
+	# Remove last newline
+	string = string.strip()
+	with open(filename, 'w') as file:
+		file.writelines(data)
+
+	# Example
+	'''
+	random_dict = {}
+	random_dict['lena'] = (np.ones((5,5)), np.zeros((5,5)))
+
+	alpha_dict = {}
+	alpha_dict['lena'] = 4
+	alpha_dict['asd'] = 4
+
+	beta_dict = {}
+	beta_dict['lena'] = 5
+	beta_dict['lena2'] = 6
+
+	update_parameters('detection_failedfouriertransform.py', alpha_dict, beta_dict, random_dict, DETECTION_THRESHOLD=12, MARK_SIZE=32, ALPHA=0.1, BETA=0.05, DWT_LEVEL=2)
+	'''
