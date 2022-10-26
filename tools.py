@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import random
 import concurrent.futures
 import traceback
+from math import cos, sin, pi
+from mpmath import csc
 
 from config import *
 from detection_failedfouriertransform import *
@@ -71,8 +73,9 @@ def show_images(list_of_images: list, rows: int, columns: int, show: bool = True
 		columns (int): number of columns in the grid
 		show (bool, optional): Whether to plt.show() the images within the function or let the user plt.show() at a different time. Defaults to True.
 	"""
+	plt.figure()
 	for (i,(image,label)) in enumerate(list_of_images):
-		plt.subplot(rows,columns,i+1)
+		plt.subplot(rows, columns, i + 1)
 		plt.title(list_of_images[i][1])
 		plt.imshow(list_of_images[i][0], cmap='gray')
 
@@ -463,3 +466,34 @@ def update_parameters(filename, alpha, beta, svd_keys, **kwargs):
 
 	update_parameters('detection_failedfouriertransform.py', alpha_dict, beta_dict, random_dict, DETECTION_THRESHOLD=12, MARK_SIZE=32, ALPHA=0.1, BETA=0.05, DWT_LEVEL=2)
 	'''
+
+# APDCBT
+# Blocks must be 8 * 8
+def all_phase_discrete_cosine_biorthogonal_transform(block):
+	trasf_matrix = np.empty([8, 8], dtype=int)
+	N = 8 # number of blocks
+	for m in range(0, 7):
+		for n in range(0, 7):
+			if n == 0:
+				trasf_matrix[m][n] = (N - m)/pow(N, 2)
+			else:
+				trasf_matrix[m][n] = (1/pow(N, 2)) * ((N - m) * cos((m*n*pi)/N) * csc((n*pi)/N) * sin((m*n*pi)/N))
+
+	tmp1 = np.matmul(trasf_matrix, block)
+	trasformed = np.matmul(tmp1, trasf_matrix.transpose())
+
+	return trasformed
+
+# Split function
+def split(array, nrows, ncols):
+	"""Split a matrix into sub-matrices."""
+	blocks = np.ndarray((array.shape[0]//nrows, nrows, ncols))
+	new_array = np.zeros((nrows, ncols))
+	for i in range(0, array.shape[0], nrows):
+		for j in range(i, i + nrows):
+			for y in range(i, i + ncols):
+				new_array[j % nrows][y % ncols] = array[j][y]
+		# print("Block: ", i, " ",  new_array)
+		blocks[i//nrows] = new_array
+
+	return blocks

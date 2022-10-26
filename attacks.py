@@ -156,8 +156,103 @@ def get_random_attacks(num_attacks):
 def describe_attacks(attacks_list):
 	return ", ".join([attacks['description'] for attacks in attacks_list])
 
-def do_random_attacks(img,attacks_list):
+def do_attacks(img, attacks_list):
 	for attack in attacks_list:
 		attack['arguments']['img'] = img
 		img = attack['function'](**attack['arguments'])
 	return img, describe_attacks(attacks_list)
+
+def get_attacks_list(attacks):
+	attacks_list_out = []
+	for attack in attacks:
+		if attack == "GAUS blur":
+			sigma = [randint(1, 5), randint(1, 5)]
+			attacks_list_out.append(
+				{
+					'function': gaussian_blur,
+					'arguments': {
+						"sigma": sigma
+					},
+					'description': 'Gaussian Blur ({})'.format(sigma)
+				}
+			)
+
+		if attack == "AVG blur":
+			avg_blur_kernel_size = (randint(1, 3) * 2) + 1  # 3, 5, 7
+			attacks_list_out.append(
+				{
+					'function': average_blur,
+					'arguments': {
+						"kernel": avg_blur_kernel_size
+					},
+					'description': 'Average Blur ({})'.format(avg_blur_kernel_size)
+				}
+			)
+
+		elif attack == "jpeg":
+			jpeg_quality_factor = randint(1, 10) * 10  # 10, 20, ..., 100
+			attacks_list_out.append(
+				{
+					'function': jpeg_compression,
+					'arguments': {
+						"QF": jpeg_quality_factor
+					},
+					'description': 'JPEG ({})'.format(jpeg_quality_factor)
+				}
+			)
+
+		elif attack == "sharpen":
+			sharpen_sigma = (random() * (5 - 0.2)) + 0.2
+			sharpen_alpha = random() * (5 - 0.1) + 0.1
+
+			attacks_list_out.append(
+				{
+					'function': sharpen,
+					'arguments': {
+						"sigma": sharpen_sigma,
+						"alpha": sharpen_alpha
+					},
+					'description': 'Sharpen ({}, {})'.format(sharpen_sigma, sharpen_alpha)
+				}
+			)
+
+		elif attack == "AWGN":
+			awgn_mean = randint(-5, 5)
+			awgn_std_dev = (random() * (5 - 0.2)) + 0.2
+			awgn_seed = randint(0, 1000)
+			attacks_list_out.append(
+				{
+					'function': awgn,
+					'arguments': {
+						"mean": awgn_mean,
+						"std": awgn_std_dev,
+						"seed": awgn_seed
+					},
+					'description': 'Additive White Gaussian Noise ({}, {}, {})'.format(awgn_mean, awgn_std_dev,
+																					   awgn_seed)
+				}
+			)
+
+		elif attack == "Resize":
+			resize_scale = randint(1, 9) / 10  # 0.1, 0.2, ..., 0.9
+			attacks_list_out.append(
+				{
+					'function': resize,
+					'arguments': {
+						"scale": resize_scale
+					},
+					'description': 'Resize ({})'.format(resize_scale)
+				}
+			)
+
+		elif attack == "Median":
+			median_kernel_size = (randint(1, 3) * 2) + 1  # 3, 5, 7
+			attacks_list_out.append(
+				{
+					'function': median,
+					'arguments': {
+						"kernel_size": median_kernel_size
+					},
+					'description': 'Median ({})'.format(median_kernel_size)
+				}
+			)

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 from random import randint
 
-from attacks import do_random_attacks, get_random_attacks
+from attacks import do_attacks, get_random_attacks
 from tools import *
 from config import *
 from detection_failedfouriertransform import *

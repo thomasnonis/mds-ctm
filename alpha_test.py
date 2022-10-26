@@ -68,7 +68,7 @@ for image_name in watermarked_images:
     ys = []
     for watermarked_image_name in watermarked_images[image_name]["watermarked_images"]:
         watermarked_img = watermarked_images[image_name]["watermarked_images"][watermarked_image_name]
-        attacked_img, _ = do_random_attacks(watermarked_img,attacks_list)
+        attacked_img, _ = do_attacks(watermarked_img, attacks_list)
         extracted_watermark = extract_watermark(original_img, img_name, attacked_img)
         ys.append(similarity(watermark, extracted_watermark))
 
