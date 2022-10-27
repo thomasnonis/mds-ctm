@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 from random import randint
 
-from attacks import do_attacks, get_random_attacks
+from attacks import do_attacks
 from tools import *
 from config import *
 from detection_failedfouriertransform import *
@@ -67,11 +67,23 @@ def compute_thr_multiple_images(extraction_function, images, original_watermark,
 	attack_idx = 0
 	n_computations = n_images * RUNS_PER_IMAGE * N_FALSE_WATERMARKS_GENERATIONS
 	print('Total number of computations: %d' % n_computations)
+
+	# Continue training if a model with the same parameters already existed
+	model_name = []
+	for x in params:
+		if type(x) == list:
+			model_name.append('-'.join(x))
+		else:
+			model_name.append(str(x))
+
+	model_name = '_'.join(model_name)
+	if exists_model(model_name):
+		(scores, labels, _, _, _, _) = read_model(model_name)
 	
 	# step by step for clarity
 	for original_img, watermarked_img, img_name in images:
 		for j in range(attack_idx, attack_idx+RUNS_PER_IMAGE):
-			attacked_img, attacks_list = do_random_attacks(watermarked_img, attacks[j])
+			attacked_img, attacks_list = do_attacks(watermarked_img, attacks[j])
 			extracted_watermark = None
 			if extraction_function == extract_watermark:
 				alpha = params[0]
