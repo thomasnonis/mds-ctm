@@ -125,19 +125,14 @@ def extract_from_svd(original_img, watermarked_img, svd_key, alpha):
 
 	return watermark
 
+# Split function
 def split(array, nrows, ncols):
-	"""Split a matrix into sub-matrices."""
-	r, h = array.shape
-	size = array.shape[0] // nrows
+    """Split a matrix into sub-matrices."""
 
-	mtx = np.ndarray((size, ncols, nrows))
-
-	for z in range(0, size):
-		for i in range(0, nrows):
-			for j in range(0, ncols):
-				mtx[z, i, j] = array[i*(z+1), j*(z+1)]
-
-	return mtx
+    r, h = array.shape
+    return (array.reshape(h//nrows, nrows, -1, ncols)
+                 .swapaxes(1, 2)
+                 .reshape(-1, nrows, ncols))
 
 def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray, attacked_img: np.ndarray) -> np.ndarray:
 	"""Extracts the watermark from a watermarked image by appling the reversed embedding algorithm,
@@ -169,9 +164,8 @@ def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_im
 	original_h1_strength = nvf(csf(original_h1), 75, 3)
 	original_v1_strength = nvf(csf(original_v1), 75, 3)
 
-	attacked_watermark_h1 = attacked_h1 / (original_h1_strength * BETA)
-	attacked_watermark_v1 = attacked_v1 / (original_v1_strength * BETA)
-	
+	attacked_watermark_h1 = (original_h1 - attacked_h1) / ((1-original_h1_strength) * BETA) 
+	attacked_watermark_v1 = (original_v1 - attacked_v1) / ((1-original_v1_strength) * BETA)
 
 	attacked_watermark_h1 = (attacked_watermark_h1 + 1) / 2
 	attacked_watermark_v1 = (attacked_watermark_v1 + 1) / 2
@@ -179,8 +173,8 @@ def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_im
 	attacked_watermark_h1_mtx = split(attacked_watermark_h1, MARK_SIZE, MARK_SIZE)
 	attacked_watermark_v1_mtx = split(attacked_watermark_v1, MARK_SIZE, MARK_SIZE)
 	for i in range(0, attacked_watermark_h1_mtx.shape[0]):
-		np.append(attacked_watermarks, [attacked_watermark_h1_mtx[i]], axis=0)
-		np.append(attacked_watermarks, [attacked_watermark_v1_mtx[i]], axis=0)
+		attacked_watermarks = np.append(attacked_watermarks, [attacked_watermark_h1_mtx[i]], axis=0)
+		attacked_watermarks = np.append(attacked_watermarks, [attacked_watermark_v1_mtx[i]], axis=0)
 
 	return np.mean(attacked_watermarks, axis=0)
 
