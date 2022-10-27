@@ -165,7 +165,7 @@ def embed_into_svd(img: np.ndarray, watermark: list, alpha: float) -> tuple:
 
 	return (watermarked, (svd_s_u, svd_s_v))
 
-def embed_watermark_tn(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, level, subbands: list) -> np.ndarray:
+def embed_watermark_tn(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, beta: float) -> np.ndarray:
 	from measurements import nvf, csf
 	coeffs = wavedec2d(original_img, DWT_LEVEL)
 	h1 = coeffs[2][0]
@@ -185,7 +185,7 @@ def embed_watermark_tn(original_img: np.ndarray, img_name: str, watermark: np.nd
 			h1[x][y] += (1-h1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * BETA
 			v1[x][y] += (1-v1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * BETA
 
-	save_parameters(img_name, alpha, svd_key)
+	save_parameters(img_name+ '_' + str(alpha) +'_' + str(beta), svd_key)
 
 	coeffs[2] = (h1, v1, coeffs[2][2])
 	coeffs[1] = (watermarked_h2, coeffs[1][1], coeffs[1][2])
@@ -221,7 +221,7 @@ def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarr
 			raise Exception(f"Subband {subband} does not exist")
 
 		band_svd, svd_key = embed_into_svd(band, watermark, alpha)
-		save_parameters(img_name + '_' + subband + str(level), alpha, svd_key)
+		save_parameters(img_name + '_' + str(alpha) +'_' + subband + str(level), svd_key)
 
 		if subband == "LL":
 			coeffs[0] = band_svd
@@ -309,7 +309,15 @@ def make_dwt_image(img_coeffs: list) -> np.ndarray:
 	img[0:size, 0:size] = img_coeffs[0]
 
 	return img
-	
+
+def exists_model(name: str) -> None:
+	"""Checks if a model exists
+
+	Args:
+		name (str): Name of the model to be checked
+	"""
+	return os.path.exists('models/model_' + name)
+
 def save_model(scores: list,labels: list,threshold: float, tpr: float, fpr: float, new_params) -> None:
 	"""Saves the model trained models/model_<alpha>_<level>_<subband>.txt 
 	The scores and label are saved too in case we want to continue training
