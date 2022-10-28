@@ -414,7 +414,7 @@ def multiprocessed_workload(function, work):
 start_string = '# ////VARIABLES START////'
 end_string = '# ////VARIABLES END////'
 
-def update_parameters(filename, alpha, beta, svd_keys, **kwargs):
+def update_parameters(filename, svd_keys, **kwargs):
 	with open(filename, 'r') as file:
 		# read a list of lines into data
 		data = file.readlines()
@@ -439,14 +439,6 @@ def update_parameters(filename, alpha, beta, svd_keys, **kwargs):
 	for keys_key in svd_keys.keys():
 		string += '\nsvd_keys[\'{}\']'.format(keys_key) + ' = (' + np.array2string(svd_keys[keys_key][0], separator=',', suppress_small=False, threshold = 9999999, max_line_width = 9999999).replace('\n', '') + '), (' + np.array2string(svd_keys[keys_key][1], separator=',', suppress_small=False, threshold = 9999999, max_line_width = 9999999).replace('\n', '') + ')'
 
-	string += '\nalpha = {}'
-	for keys_key in alpha.keys():
-		string += '\nalpha[\'{}\']'.format(keys_key) + ' = ' + str(alpha[keys_key])
-
-	string += '\nbeta = {}'
-	for keys_key in beta.keys():
-		string += '\nbeta[\'{}\']'.format(keys_key) + ' = ' + str(beta[keys_key])
-
 	if start_line == -1 or end_line == -1:
 		start_line = 0
 		end_line = 0
@@ -464,15 +456,7 @@ def update_parameters(filename, alpha, beta, svd_keys, **kwargs):
 	random_dict = {}
 	random_dict['lena'] = (np.ones((5,5)), np.zeros((5,5)))
 
-	alpha_dict = {}
-	alpha_dict['lena'] = 4
-	alpha_dict['asd'] = 4
-
-	beta_dict = {}
-	beta_dict['lena'] = 5
-	beta_dict['lena2'] = 6
-
-	update_parameters('detection_failedfouriertransform.py', alpha_dict, beta_dict, random_dict, DETECTION_THRESHOLD=12, MARK_SIZE=32, ALPHA=0.1, BETA=0.05, DWT_LEVEL=2)
+	update_parameters('detection_failedfouriertransform.py', random_dict, ALPHA=23, BETA=0.2, DETECTION_THRESHOLD=12, MARK_SIZE=32, DWT_LEVEL=2)
 	'''
 
 # APDCBT

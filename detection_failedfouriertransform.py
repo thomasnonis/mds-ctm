@@ -6,14 +6,12 @@ from scipy.signal import convolve2d
 from math import sqrt
 
 # ////VARIABLES START////
+ALPHA = 23
+BETA = 0.2
 DETECTION_THRESHOLD = 12
 MARK_SIZE = 32
-ALPHA = 0.1
-BETA = 0.05
 DWT_LEVEL = 2
 svd_keys = {}
-alpha = {}
-beta = {}
 # ////VARIABLES END////
 
 TEAM_NAME = 'failedfouriertransform'
