@@ -136,6 +136,18 @@ def compute_ROC(scores, labels, show: bool = True):
 def compute_thr_multiple_images(extraction_function, images, original_watermark, params, attacks, show: bool = True):
 	scores = []
 	labels = []
+
+	model_name = []
+	for x in params:
+		if type(x) == list:
+			model_name.append('-'.join(x))
+		else:
+			model_name.append(str(x))
+
+	model_name = '_'.join(model_name)
+	if exists_model(model_name):
+		(scores, labels, _, _, _, _) = read_model(model_name)
+
 	n_images = len(images)
 	i = 0
 	m = 0

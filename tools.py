@@ -234,19 +234,14 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 
 	return final_watermark
 
+# Split function
 def split(array, nrows, ncols):
-	"""Split a matrix into sub-matrices."""
-	r, h = array.shape
-	size = array.shape[0] // nrows
+    """Split a matrix into sub-matrices."""
 
-	mtx = np.ndarray((size, ncols, nrows))
-
-	for z in range(0, size):
-		for i in range(0, nrows):
-			for j in range(0, ncols):
-				mtx[z, i, j] = array[i*(z+1), j*(z+1)]
-
-	return mtx
+    r, h = array.shape
+    return (array.reshape(h//nrows, nrows, -1, ncols)
+                 .swapaxes(1, 2)
+                 .reshape(-1, nrows, ncols))
 
 def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, level, subbands: list) -> np.ndarray:
 	"""Embeds a watermark into the S component of the SVD decomposition of an image's LL DWT subband
@@ -327,7 +322,6 @@ def embed_watermark_tn(original_img: np.ndarray, img_name: str, watermark: np.nd
 	v1 = coeffs[2][1]
 
 	watermarked_h2, svd_key = embed_into_svd(h2, watermark, alpha)
-	
 	h1_strength = nvf(csf(h1), 75, 3)
 	v1_strength = nvf(csf(v1), 75, 3)
 
@@ -338,9 +332,9 @@ def embed_watermark_tn(original_img: np.ndarray, img_name: str, watermark: np.nd
 		for y in range(0, h1_strength.shape[1]):
 			h1[x][y] += (1-h1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * beta
 			v1[x][y] += (1-v1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * beta
+	save_parameters(img_name+ '_' + str(alpha) +'_' + str(beta), svd_key)
 
-	save_parameters(img_name, svd_key)
-
+	
 	coeffs[2] = (h1, v1, coeffs[2][2])
 	coeffs[1] = (watermarked_h2, coeffs[1][1], coeffs[1][2])
 	return waverec2d(coeffs)
@@ -357,9 +351,9 @@ def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_im
 	Returns:
 		np.ndarray: Extracted watermark
 	"""
-	from measurements import nvf, csf, similarity
+	from measurements import nvf, csf
 
-	(_, svd_key) = read_parameters(img_name)
+	(_, svd_key) = read_parameters(img_name + '_' + str(alpha) +'_' + str(beta))
 
 	original_coeffs = wavedec2d(original_img, DWT_LEVEL)
 	original_h1 = original_coeffs[2][0]
@@ -375,24 +369,35 @@ def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_im
 
 	# This is of size 128x128, while all others are 256x256!
 	attacked_watermarks[0] = extract_from_svd(original_h2,attacked_h2, svd_key, alpha)
-	#show_images([(attacked_watermarks[0],"Extracted from svd")],1,1)
+
 	original_h1_strength = nvf(csf(original_h1), 75, 3)
 	original_v1_strength = nvf(csf(original_v1), 75, 3)
+	
+	# Should be (attacked_h1 - original_h1), but the watermark comes out flipped this way, so swap numerators
+	# h1_new = h1_old + (1-h1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * beta
+	# (h1_new - h1_old) / ((1-h1_strength[x][y]) * beta)
+	attacked_watermark_h1 = (original_h1 - attacked_h1) / ((1-original_h1_strength) * beta) 
+	attacked_watermark_v1 = (original_v1 - attacked_v1) / ((1-original_v1_strength) * beta)
+	
+	# [-1,1] to [0,1]
+	attacked_watermark_h1 = np.interp(attacked_watermark_h1, (attacked_watermark_h1.min(), attacked_watermark_h1.max()), (0, 1))
+	attacked_watermark_v1 = np.interp(attacked_watermark_v1, (attacked_watermark_v1.min(), attacked_watermark_v1.max()), (0, 1))
 
-	attacked_watermark_h1 = attacked_h1 / (original_h1_strength * beta)
-	attacked_watermark_v1 = attacked_v1 / (original_v1_strength * beta)
+	# show_images([(attacked_watermarks[0], 'Extracted SVD'),(attacked_watermark_h1, 'attacked_watermark_h1'), (attacked_watermark_v1, 'attacked_watermark_v1')],1,3)
+	
+	# Split the 256x256 watermark we embedded into MARK_SIZExMARK_SIZE subwatermarks anc calculate mean watermark on each axis
+	attacked_watermark_h1 = np.mean(split(attacked_watermark_h1, MARK_SIZE, MARK_SIZE),axis=0)
+	attacked_watermark_v1 = np.mean(split(attacked_watermark_v1, MARK_SIZE, MARK_SIZE),axis=0)
+	
 	
 
-	attacked_watermark_h1 = (attacked_watermark_h1 + 1) / 2
-	attacked_watermark_v1 = (attacked_watermark_v1 + 1) / 2
-
-	attacked_watermark_h1_mtx = split(attacked_watermark_h1, MARK_SIZE, MARK_SIZE)
-	attacked_watermark_v1_mtx = split(attacked_watermark_v1, MARK_SIZE, MARK_SIZE)
-	for i in range(0, attacked_watermark_h1_mtx.shape[0]):
-		np.append(attacked_watermarks, [attacked_watermark_h1_mtx[i]], axis=0)
-		np.append(attacked_watermarks, [attacked_watermark_v1_mtx[i]], axis=0)
-
+	# show_images([(attacked_watermark_h1, 'MEAN attacked_watermark_h1'), (attacked_watermark_v1, 'MEAN attacked_watermark_v1')],1,2)
+	attacked_watermarks = np.append(attacked_watermarks, [attacked_watermark_h1], axis=0)
+	attacked_watermarks = np.append(attacked_watermarks, [attacked_watermark_v1], axis=0)
+	
+	# Calculate the mean of watermarks extracted from SVD, H1 and V1
 	return np.mean(attacked_watermarks, axis=0)
+
 def save_model(scores: list,labels: list,threshold: float, tpr: float, fpr: float, new_params) -> None:
 	"""Saves the model trained models/model_<alpha>_<level>_<subband>.txt 
 	The scores and label are saved too in case we want to continue training
@@ -435,6 +440,14 @@ def read_model(name: str) -> None:
 	f.close()
 	return scores, labels, threshold, tpr, fpr, params
 
+def exists_model(name: str) -> None:
+	"""Checks if a model exists
+
+	Args:
+		name (str): Name of the model to be checked
+	"""
+	return os.path.exists('models/model_' + name)
+
 def create_model(params, order_of_execution):
 	from measurements import compute_thr_multiple_images
 	watermarked_images = []
@@ -448,8 +461,7 @@ def create_model(params, order_of_execution):
 	new_params = ()
 	for original_img, img_name in images:
 		watermarked_img = None
-		if embedding_function == embed_watermark:
-			
+		if embedding_function == embed_watermark:			
 			alpha = params[3]
 			level = params[4]
 			subband = params[5]	
