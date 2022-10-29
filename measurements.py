@@ -169,6 +169,11 @@ def compute_thr_multiple_images(extraction_function, images, original_watermark,
 				alpha = params[0]
 				beta = params[1]
 				extracted_watermark = extract_watermark_tn(original_img, img_name, attacked_img, alpha, beta)
+			elif extraction_function == extract_watermark_dct:
+				alpha = params[0]
+				level = params[1]
+				subband = params[2]
+				extracted_watermark = extract_watermark_dct(original_img, img_name, attacked_img, alpha, level, subband)
 			else:
 				print(f'Extraction function {extraction_function} does not exist!')
 

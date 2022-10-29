@@ -8,12 +8,12 @@ from tools import *
 
 def main():
 	# Load images
-	images = import_images(IMG_FOLDER_PATH,N_IMAGES_LIMIT,True)
+	images = import_images(IMG_FOLDER_PATH, N_IMAGES_LIMIT, True)
 
 	# Generate watermark
-	watermark = generate_watermark(MARK_SIZE)
+	watermark = np.load("failedfouriertransform.npy").reshape((MARK_SIZE, MARK_SIZE))
 
-	show_threshold = False
+	show_threshold = True
 	attacks = []
 	# Get list of attacks, so that the models are trained with images attacked in the same way
 	for _ in images:
@@ -23,20 +23,28 @@ def main():
 	work = []
 	# TODO: Avoid retraining models already trained, or implement logic to continue training already trained models with new samples
 	
-	alpha_range = [25,50,75,100]
+	alpha_range = [250] #[25,50,75,100]
 	for alpha in alpha_range:
 		alpha = int(alpha)
 		for level in [DWT_LEVEL-1,DWT_LEVEL,DWT_LEVEL+1]:
 			for subband in [["LL"], ["HL","LH"]]:
 				work.append((images, embed_watermark, extract_watermark, watermark, alpha, level, subband, attacks, show_threshold))
-	
-	alpha_range = [10,20,40,60]
-	beta_range = [0.001,0.01,0.1,0.2,0.3,0.4,0.5,0.6]
+
+	alpha_range = [250] #[10,20,40,60]
+	beta_range = [5] #[0.001,0.01,0.1,0.2,0.3,0.4,0.5,0.6]
 	for alpha in alpha_range:
 		for beta in beta_range:
+			beta = round(beta,2)
 			work.append((images,embed_watermark_tn, extract_watermark_tn, watermark, alpha, beta, attacks, show_threshold))
+
+	alpha_range = [250] #[25, 50, 60, 75]
+	for alpha in alpha_range:
+		alpha = int(alpha)
+		for level in [DWT_LEVEL - 1, DWT_LEVEL, DWT_LEVEL + 1]:
+			for subband in [["LL"], ["HL", "LH"]]:
+				work.append((images, embed_watermark_dct, extract_watermark_dct, watermark, alpha, level, subband, attacks, show_threshold))
 	
-	result = multiprocessed_workload(create_model,work)
+	result = multiprocessed_workload(create_model, work)
 	print(result)
 
 
