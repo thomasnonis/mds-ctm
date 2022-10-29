@@ -2,6 +2,7 @@ import sys
 from time import time
 from collections import defaultdict
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 sys.path.append('..')
@@ -53,7 +54,7 @@ def embed_watermark_dct(original_img: np.ndarray, img_name: str, watermark: np.n
 		band = dct(dct(band, axis=0, norm='ortho'), axis=1, norm='ortho')
 
 		band_svd, svd_key = embed_into_svd(band, watermark, alpha)
-		save_parameters(img_name + '_' + subband + str(level), alpha, svd_key)
+		save_parameters(img_name + '_' + subband + str(level), svd_key)
 
 		band_svd = idct(idct(band_svd, axis=1, norm='ortho'),axis=0, norm='ortho')
 
@@ -68,7 +69,7 @@ def embed_watermark_dct(original_img: np.ndarray, img_name: str, watermark: np.n
 		else:
 			raise Exception(f"Subband {subband} does not exist")
 
-	watermark = waverec2d(coeffs)
+	"""watermark = waverec2d(coeffs)
 	print(wpsnr(watermark, original_img))
 	plt.figure()
 	plt.subplot(121)
@@ -77,7 +78,7 @@ def embed_watermark_dct(original_img: np.ndarray, img_name: str, watermark: np.n
 	plt.subplot(122)
 	plt.title("Watermarked")
 	plt.imshow(watermark, cmap='gray')
-	plt.show()
+	plt.show()"""
 	return waverec2d(coeffs)
 
 
@@ -104,16 +105,16 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 		watermarked_band = None
 		if subband == "LL":
 			original_band = original_coeffs[0]
-			watermarked_band = watermarked_coeffs[0] # dct(dct(watermarked_coeffs[0], axis=0, norm='ortho'), axis=1, norm='ortho')
+			watermarked_band = dct(dct(watermarked_coeffs[0], axis=0, norm='ortho'), axis=1, norm='ortho')
 		elif subband == "HL":
 			original_band = original_coeffs[1][0]
-			watermarked_band = watermarked_coeffs[1][0] # dct(dct(watermarked_coeffs[1][0], axis=0, norm='ortho'), axis=1, norm='ortho')
+			watermarked_band = dct(dct(watermarked_coeffs[1][0], axis=0, norm='ortho'), axis=1, norm='ortho')
 		elif subband == "LH":
 			original_band = original_coeffs[1][1]
-			watermarked_band = watermarked_coeffs[1][1]# dct(dct(watermarked_coeffs[1][1], axis=0, norm='ortho'), axis=1, norm='ortho')
+			watermarked_band = dct(dct(watermarked_coeffs[1][1], axis=0, norm='ortho'), axis=1, norm='ortho')
 		elif subband == "HH":
 			original_band = original_coeffs[1][2]
-			watermarked_band = watermarked_coeffs[1][2] # dct(dct(watermarked_coeffs[1][2], axis=0, norm='ortho'), axis=1, norm='ortho')
+			watermarked_band = dct(dct(watermarked_coeffs[1][2], axis=0, norm='ortho'), axis=1, norm='ortho')
 		else:
 			raise Exception(f"Subband {subband} does not exist")
 
@@ -123,7 +124,7 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 		watermarked_band_u, watermarked_band_s, watermarked_band_v = np.linalg.svd(watermarked_band)
 		watermarked_band_s = np.diag(watermarked_band_s)
 
-		(_, alpha, svd_key) = read_parameters(img_name + '_' + subband + str(level))
+		(alpha, svd_key) = read_parameters(img_name + '_' + subband + str(level))
 		# original_s_ll_d_u, original_s_ll_d_s, original_s_ll_d_v
 		s_band_d = svd_key[0] @ watermarked_band_s @ svd_key[1]
 
@@ -134,83 +135,45 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 
 		for i in range(0, MARK_SIZE):
 			for j in range(0, MARK_SIZE):
-				watermark[i][j] = (s_band_d[i][j] - original_band_s[i][j]) / alpha
-		watermarks.append(watermark)
+				watermark[i][j] = (s_band_d[i][j] - original_band_s[i][j]) / DEFAULT_ALPHA
+		watermarks.append((watermark, subband + " " + img_name))
+
+
 
 	final_watermark = np.zeros([MARK_SIZE, MARK_SIZE], dtype=np.float64)
 
 	for watermark in watermarks:
-		final_watermark += watermark
+		final_watermark += watermark[0]
 	final_watermark = final_watermark / len(subbands)
 
-	plt.figure()
+	show_images(watermarks + [(final_watermark, "Final")], 1, 3)
+	"""plt.figure()
 	plt.subplot(121)
 	plt.title("Final Watermark")
 	plt.imshow(final_watermark, cmap='gray')
-	plt.show()
+	plt.show()"""
 	return final_watermark
 
-subbands = [['HL','LH']]
-levels = [DWT_LEVEL]
-alpha_range = np.arange(0.1, 0.3, 0.1) * DEFAULT_ALPHA
-watermarked_imgs = defaultdict(dict)
-print("Total work: ", n_images * len(subbands) * len(alpha_range) * len(levels))
-for original_img, img_name in images:
-	watermarked_imgs[img_name]['original_img'] = original_img
-	watermarked_imgs[img_name]['watermarked'] = {}
-	for level in levels:
-		watermarked_imgs[img_name]['watermarked'][level] = {}
-		for subband in subbands:
-			watermarked_imgs[img_name]['watermarked'][level]['-'.join(subband)] = {}
-			d = {}
-			for alpha in alpha_range:
-				alpha = int(alpha)
-				watermarked_img = embed_watermark_dct(original_img, img_name, watermark, alpha, level, subband)
-				d[alpha] = watermarked_img
-			watermarked_imgs[img_name]['watermarked'][level]['-'.join(subband)] = d
-plt.figure()
-for img in watermarked_imgs:
-	original_img = watermarked_imgs[img]['original_img']
+subbands = ['HL','LH']
+images = import_images("../" + IMG_FOLDER_PATH, N_IMAGES_LIMIT, True)
+watermark = np.load("../failedfouriertransform.npy").reshape((MARK_SIZE, MARK_SIZE))
+w_images = []
+w_extracted = []
 
-	for level in watermarked_imgs[img]['watermarked']:
-		for subband in watermarked_imgs[img]['watermarked'][level]:
-			ys = []
-			for alpha in watermarked_imgs[img]['watermarked'][level][subband]:
-				watermarked_image = watermarked_imgs[img]['watermarked'][level][subband][alpha]
-				ys.append(wpsnr(original_img, watermarked_image))
-			plt.plot(alpha_range, ys, lw=2, label=img+'_'+subband+'_'+str(level))
+for i in images:
+	w = embed_watermark_dct(i[0], i[1], watermark, ALPHA, DWT_LEVEL, subbands)
+	w_images.append((w, "Watermarked " + i[1]))
+	print("WPSNR ", i[1], ": ", wpsnr(w, i[0]))
+	attacks_list = get_random_attacks(1)
+	attacked = do_attacks(w, attacks_list)
+	print("WPSNR attacked with ", attacked[1], i[1], ": ", wpsnr(attacked[0], i[0]))
+	e = extract_watermark(attacked[0], i[1], w, DWT_LEVEL, subbands)
+	#e = extract_watermark(i[0], i[1], w, DWT_LEVEL, subbands)
+	w_extracted.append((e, "Extracted " + i[1]))
+	print("SIM extraction ", i[1], ": ", similarity(watermark, e))
 
-plt.xlabel('Alpha')
-plt.ylabel('WPSNR')
-plt.title('WPSNR comparison of images with a watermark embedded and with different values of alpha and different subbands')
-plt.legend(loc='upper right')
-plt.show()
-
-plt.figure()
-attacks_list = get_random_attacks(1)
-
-print(describe_attacks(attacks_list))
-for img in watermarked_imgs:
-	original_img = watermarked_imgs[img]['original_img']
-
-	for level in watermarked_imgs[img]['watermarked']:
-		for subband in subbands:
-			xs = []
-			ys = []
-			for alpha in watermarked_imgs[img]['watermarked'][level]['-'.join(subband)]:
-				watermarked_image = watermarked_imgs[img]['watermarked'][level]['-'.join(subband)][alpha]
-				attacked_img, _ = do_attacks(watermarked_image, attacks_list)
-				extracted_watermark = extract_watermark(original_img, img_name, attacked_img,level,subband)
-				xs.append(wpsnr(original_img,attacked_img))
-				ys.append(similarity(watermark, extracted_watermark))
-			plt.plot(xs, ys, lw=2, label=img+'_'+'-'.join(subband)+'_'+str(level))
-
-plt.xlabel('WPSNR')
-plt.ylabel('Similarity')
-plt.title('WPSNR-Similarity of attacked images at different levels ')
-plt.legend(loc='upper right')
-plt.show()
-
+show_images(images + w_images, 2, len(images))
+show_images([(watermark, "Original")] + w_extracted, 2, 2)
 """
 print(results)
 # Compute threshold

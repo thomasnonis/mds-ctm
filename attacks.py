@@ -165,7 +165,7 @@ def do_attacks(img, attacks_list):
 def get_attacks_list(attacks):
 	attacks_list_out = []
 	for attack in attacks:
-		if attack == "GAUS blur":
+		if attack == "gaus blur":
 			sigma = [randint(1, 5), randint(1, 5)]
 			attacks_list_out.append(
 				{
@@ -177,7 +177,7 @@ def get_attacks_list(attacks):
 				}
 			)
 
-		if attack == "AVG blur":
+		if attack == "avg blur":
 			avg_blur_kernel_size = (randint(1, 3) * 2) + 1  # 3, 5, 7
 			attacks_list_out.append(
 				{
@@ -216,7 +216,7 @@ def get_attacks_list(attacks):
 				}
 			)
 
-		elif attack == "AWGN":
+		elif attack == "awgn":
 			awgn_mean = randint(-5, 5)
 			awgn_std_dev = (random() * (5 - 0.2)) + 0.2
 			awgn_seed = randint(0, 1000)
@@ -233,7 +233,7 @@ def get_attacks_list(attacks):
 				}
 			)
 
-		elif attack == "Resize":
+		elif attack == "resize":
 			resize_scale = randint(1, 9) / 10  # 0.1, 0.2, ..., 0.9
 			attacks_list_out.append(
 				{
@@ -245,7 +245,7 @@ def get_attacks_list(attacks):
 				}
 			)
 
-		elif attack == "Median":
+		elif attack == "median":
 			median_kernel_size = (randint(1, 3) * 2) + 1  # 3, 5, 7
 			attacks_list_out.append(
 				{
@@ -256,3 +256,4 @@ def get_attacks_list(attacks):
 					'description': 'Median ({})'.format(median_kernel_size)
 				}
 			)
+	return attacks_list_out

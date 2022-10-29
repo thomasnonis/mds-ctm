@@ -104,7 +104,6 @@ def read_parameters(img_name: str) -> tuple:
 	Returns:
 		tuple: (Name of the image: str, Embedding strength coefficient: float, SVD key matrices for the reverse algorithm: np.ndarray)
 	"""
-	# print("IMGNAME: ", img_name)
 	f = open('parameters/' + img_name + '_parameters.txt', 'rb')
 	(img_name, svd_key) = pickle.load(f)
 	f.close()
