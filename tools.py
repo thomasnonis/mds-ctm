@@ -149,6 +149,19 @@ def save_parameters(img_name: str, svd_key: tuple) -> None:
 	pickle.dump((img_name, svd_key), f, protocol=2)
 	f.close()
 
+def save_parameters_tn(img_name: str, svd_key: tuple, h1_strength, v1_strength) -> None:
+	"""Saves the necessary parameters for the detection into parameters/<img_name>_parameters.txt
+
+	Args:
+		img_name (str): Name of the image
+		svd_key (tuple): Tuple containing the SVD key matrices for the reverse algorithm
+	"""
+	if not os.path.isdir('parameters/'):
+		os.mkdir('parameters/')
+	f = open('parameters/' + img_name + '_parameters.txt', 'wb')
+	pickle.dump((img_name, svd_key, h1_strength, v1_strength), f, protocol=2)
+	f.close()
+
 def read_parameters(img_name: str) -> tuple:
 	"""Retrieves the necessary parameters for the detection from parameters/<img_name>_parameters.txt
 
@@ -163,6 +176,21 @@ def read_parameters(img_name: str) -> tuple:
 	(img_name, svd_key) = pickle.load(f)
 	f.close()
 	return img_name, svd_key
+
+def read_parameters_tn(img_name: str) -> tuple:
+	"""Retrieves the necessary parameters for the detection from parameters/<img_name>_parameters.txt
+
+	Args:
+		img_name (str): Name of the image
+
+	Returns:
+		tuple: (Name of the image: str, Embedding strength coefficient: float, SVD key matrices for the reverse algorithm: np.ndarray)
+	"""
+	# print("IMGNAME: ", img_name)
+	f = open('parameters/' + img_name + '_parameters.txt', 'rb')
+	(img_name, svd_key, h1_strength, v1_strength) = pickle.load(f)
+	f.close()
+	return img_name, svd_key, h1_strength, v1_strength
 
 def import_images(img_folder_path: str, num_images: int, shuffle:bool=False) -> list:
 	"""Loads a list of all images contained in a folder and returns a list of (image, name) tuples
@@ -332,7 +360,7 @@ def embed_watermark_tn(original_img: np.ndarray, img_name: str, watermark: np.nd
 		for y in range(0, h1_strength.shape[1]):
 			h1[x][y] += (1-h1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * beta
 			v1[x][y] += (1-v1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * beta
-	save_parameters(img_name+ '_' + str(alpha) +'_' + str(beta), svd_key)
+	save_parameters_tn(img_name+ '_' + str(alpha) +'_' + str(beta), svd_key, h1_strength, v1_strength)
 
 	
 	coeffs[2] = (h1, v1, coeffs[2][2])
@@ -353,7 +381,7 @@ def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_im
 	"""
 	from measurements import nvf, csf
 
-	(_, svd_key) = read_parameters(img_name + '_' + str(alpha) +'_' + str(beta))
+	(_, svd_key, original_h1_strength, original_v1_strength) = read_parameters_tn(img_name + '_' + str(alpha) +'_' + str(beta))
 
 	original_coeffs = wavedec2d(original_img, DWT_LEVEL)
 	original_h1 = original_coeffs[2][0]
@@ -370,8 +398,8 @@ def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_im
 	# This is of size 128x128, while all others are 256x256!
 	attacked_watermarks[0] = extract_from_svd(original_h2,attacked_h2, svd_key, alpha)
 
-	original_h1_strength = nvf(csf(original_h1), 75, 3)
-	original_v1_strength = nvf(csf(original_v1), 75, 3)
+	# original_h1_strength = nvf(csf(original_h1), 75, 3)
+	# original_v1_strength = nvf(csf(original_v1), 75, 3)
 	
 	# Should be (attacked_h1 - original_h1), but the watermark comes out flipped this way, so swap numerators
 	# h1_new = h1_old + (1-h1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * beta
@@ -461,10 +489,10 @@ def create_model(params, order_of_execution):
 	new_params = ()
 	for original_img, img_name in images:
 		watermarked_img = None
-		if embedding_function == embed_watermark:			
+		if embedding_function == embed_watermark:
 			alpha = params[3]
 			level = params[4]
-			subband = params[5]	
+			subband = params[5]
 			new_params = (alpha, level, subband) # Doing this in a loop is useless, is needed only once
 			watermarked_img = embed_watermark(original_img, img_name, watermark, alpha, level, subband)
 		elif embedding_function == embed_watermark_tn:
