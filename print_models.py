@@ -2,13 +2,11 @@ import numpy as np
 import pickle
 from tools import read_model
 
-alpha_range = np.arange(0.5, 1, 0.2) * 23
-beta_range = np.arange(0.01, 0.2+0.1, 0.04)
+alpha_range = [10,20,40,60]
+beta_range = [0.001,0.01,0.1,0.2,0.3,0.4,0.5,0.6]
 
 for alpha in alpha_range:
     for beta in beta_range:
-        alpha = round(alpha,2)
-        beta = round(beta,2)
         (scores, labels, threshold, tpr, fpr, params) = read_model(str(alpha) + '_' + str(beta))
         tpr = round(tpr,2)
         fpr = round(fpr,2)
@@ -16,7 +14,7 @@ for alpha in alpha_range:
         print(str(alpha) + '_' + str(beta), tpr, fpr, threshold)
 
 print("="*10)
-alpha_range = np.arange(0.1, 0.4, 0.1) * 250
+alpha_range = [25,50,75,100]
 for alpha in alpha_range:
     for level in [2-1,2,2+1]:
         for subband in [["LL"], ["HL","LH"]]:

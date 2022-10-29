@@ -23,19 +23,17 @@ def main():
 	work = []
 	# TODO: Avoid retraining models already trained, or implement logic to continue training already trained models with new samples
 	
-	alpha_range = np.arange(0.1, 0.4 , 0.1) * DEFAULT_ALPHA
+	alpha_range = [25,50,75,100]
 	for alpha in alpha_range:
 		alpha = int(alpha)
 		for level in [DWT_LEVEL-1,DWT_LEVEL,DWT_LEVEL+1]:
 			for subband in [["LL"], ["HL","LH"]]:
 				work.append((images, embed_watermark, extract_watermark, watermark, alpha, level, subband, attacks, show_threshold))
 	
-	alpha_range = np.arange(0.5, 1, 0.2) * ALPHA_TN
-	beta_range = np.arange(0.01, BETA+0.1, 0.04)
+	alpha_range = [10,20,40,60]
+	beta_range = [0.001,0.01,0.1,0.2,0.3,0.4,0.5,0.6]
 	for alpha in alpha_range:
-		alpha = round(alpha,2)
 		for beta in beta_range:
-			beta = round(beta,2)
 			work.append((images,embed_watermark_tn, extract_watermark_tn, watermark, alpha, beta, attacks, show_threshold))
 	
 	result = multiprocessed_workload(create_model,work)
