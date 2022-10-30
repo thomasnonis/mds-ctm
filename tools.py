@@ -526,7 +526,7 @@ def extract_watermark_dct(original_img: np.ndarray, img_name: str, watermarked_i
     final_watermark = np.zeros([MARK_SIZE, MARK_SIZE], dtype=np.float64)
 
     for watermark in watermarks:
-        final_watermark += watermark[0]
+        final_watermark += watermark
     final_watermark = final_watermark / len(subbands)
 
     return final_watermark
