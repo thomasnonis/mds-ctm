@@ -343,12 +343,35 @@ def embed_watermark_tn(original_img: np.ndarray, img_name: str, watermark: np.nd
         for y in range(0, h1_strength.shape[1]):
             h1[x][y] += (1 - h1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * beta
             v1[x][y] += (1 - v1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * beta
-    save_parameters(img_name + '_' + str(alpha) + '_' + str(beta), svd_key)
+    save_parameters_tn(img_name+ '_' + str(alpha) +'_' + str(beta), svd_key, h1_strength, v1_strength)
 
     coeffs[2] = (h1, v1, coeffs[2][2])
     coeffs[1] = (watermarked_h2, coeffs[1][1], coeffs[1][2])
     return waverec2d(coeffs)
 
+def save_parameters_tn(img_name: str, svd_key: tuple, h1_strength, v1_strength) -> None:
+	"""Saves the necessary parameters for the detection into parameters/<img_name>_parameters.txt
+	Args:
+		img_name (str): Name of the image
+		svd_key (tuple): Tuple containing the SVD key matrices for the reverse algorithm
+	"""
+	if not os.path.isdir('parameters/'):
+		os.mkdir('parameters/')
+	f = open('parameters/' + img_name + '_parameters.txt', 'wb')
+	pickle.dump((img_name, svd_key, h1_strength, v1_strength), f, protocol=2)
+	f.close()
+
+def read_parameters_tn(img_name: str) -> tuple:
+	"""Retrieves the necessary parameters for the detection from parameters/<img_name>_parameters.txt
+	Args:
+		img_name (str): Name of the image
+	Returns:
+		tuple: (Name of the image: str, Embedding strength coefficient: float, SVD key matrices for the reverse algorithm: np.ndarray)
+	"""
+	f = open('parameters/' + img_name + '_parameters.txt', 'rb')
+	(img_name, svd_key, h1_strength, v1_strength) = pickle.load(f)
+	f.close()
+	return img_name, svd_key, h1_strength, v1_strength
 
 def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray, alpha: float,
                          beta: float) -> np.ndarray:
@@ -365,7 +388,7 @@ def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_im
     """
     from measurements import nvf, csf
 
-    (_, svd_key) = read_parameters(img_name + '_' + str(alpha) + '_' + str(beta))
+    (_, svd_key, original_h1_strength, original_v1_strength) = read_parameters_tn(img_name + '_' + str(alpha) +'_' + str(beta))
 
     original_coeffs = wavedec2d(original_img, DWT_LEVEL)
     original_h1 = original_coeffs[2][0]
@@ -382,8 +405,8 @@ def extract_watermark_tn(original_img: np.ndarray, img_name: str, watermarked_im
     # This is of size 128x128, while all others are 256x256!
     attacked_watermarks[0] = extract_from_svd(original_h2, attacked_h2, svd_key, alpha)
 
-    original_h1_strength = nvf(csf(original_h1), 75, 3)
-    original_v1_strength = nvf(csf(original_v1), 75, 3)
+    # original_h1_strength = nvf(csf(original_h1), 75, 3)
+    # original_v1_strength = nvf(csf(original_v1), 75, 3)
 
     # Should be (attacked_h1 - original_h1), but the watermark comes out flipped this way, so swap numerators
     # h1_new = h1_old + (1-h1_strength[x][y]) * watermark[x % MARK_SIZE][y % MARK_SIZE] * beta
@@ -444,7 +467,6 @@ def embed_watermark_dct(original_img: np.ndarray, img_name: str, watermark: np.n
         band = dct(dct(band, axis=0, norm='ortho'), axis=1, norm='ortho')
 
         band_svd, svd_key = embed_into_svd(band, watermark, alpha)
-        save_parameters(img_name + '_' + subband + str(level), svd_key)
 
         band_svd = idct(idct(band_svd, axis=1, norm='ortho'), axis=0, norm='ortho')
 
@@ -459,16 +481,6 @@ def embed_watermark_dct(original_img: np.ndarray, img_name: str, watermark: np.n
         else:
             raise Exception(f"Subband {subband} does not exist")
 
-    """watermark = waverec2d(coeffs)
-    print(wpsnr(watermark, original_img))
-    plt.figure()
-    plt.subplot(121)
-    plt.title("Original")
-    plt.imshow(original_img, cmap='gray')
-    plt.subplot(122)
-    plt.title("Watermarked")
-    plt.imshow(watermark, cmap='gray')
-    plt.show()"""
     return waverec2d(coeffs)
 
 
@@ -506,25 +518,9 @@ def extract_watermark_dct(original_img: np.ndarray, img_name: str, watermarked_i
         else:
             raise Exception(f"Subband {subband} does not exist")
 
-        original_band_u, original_band_s, original_band_v = np.linalg.svd(original_band)
-        original_band_s = np.diag(original_band_s)
-
-        watermarked_band_u, watermarked_band_s, watermarked_band_v = np.linalg.svd(watermarked_band)
-        watermarked_band_s = np.diag(watermarked_band_s)
-
-        (_, svd_key) = read_parameters(img_name + '_' + subband + str(level))
-        # original_s_ll_d_u, original_s_ll_d_s, original_s_ll_d_v
-        s_band_d = svd_key[0] @ watermarked_band_s @ svd_key[1]
-
-        # Initialize the watermark matrix
-        watermark = np.zeros([MARK_SIZE, MARK_SIZE], dtype=np.float64)
-
-        # Extract the watermark
-
-        for i in range(0, MARK_SIZE):
-            for j in range(0, MARK_SIZE):
-                watermark[i][j] = (s_band_d[i][j] - original_band_s[i][j]) / alpha
-        watermarks.append((watermark, subband + " " + img_name))
+        (_, svd_key) = read_parameters(img_name + '_' + 'dct' +  '_' + str(alpha) + '_' + subband + str(level))
+        watermark = extract_from_svd(original_band, watermarked_band, svd_key, alpha)
+        watermarks.append(watermark)
 
     final_watermark = np.zeros([MARK_SIZE, MARK_SIZE], dtype=np.float64)
 
@@ -532,12 +528,6 @@ def extract_watermark_dct(original_img: np.ndarray, img_name: str, watermarked_i
         final_watermark += watermark[0]
     final_watermark = final_watermark / len(subbands)
 
-    #show_images(watermarks + [(final_watermark, "Final")], 1, 3)
-    """plt.figure()
-    plt.subplot(121)
-    plt.title("Final Watermark")
-    plt.imshow(final_watermark, cmap='gray')
-    plt.show()"""
     return final_watermark
 
 

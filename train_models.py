@@ -22,27 +22,24 @@ def main():
 
 	work = []
 	# TODO: Avoid retraining models already trained, or implement logic to continue training already trained models with new samples
-	
 	alpha_range = [25,50,75,100]
 	for alpha in alpha_range:
 		alpha = int(alpha)
 		for level in [DWT_LEVEL-1,DWT_LEVEL,DWT_LEVEL+1]:
 			for subband in [["LL"], ["HL","LH"]]:
 				work.append((images, embed_watermark, extract_watermark, watermark, alpha, level, subband, attacks, show_threshold))
-
-	"""alpha_range = [10,20,40,60]
-	beta_range = [0.01,0.1,0.2,0.3,0.4,0.5,0.6]
+	
+	alpha_range = [10,20,40,60] 
+	beta_range = [0.005,0.01,0.1,0.2,0.3,0.4,0.5,0.6]
 	for alpha in alpha_range:
 		for beta in beta_range:
-			beta = round(beta,2)
-			work.append((images,embed_watermark_tn, extract_watermark_tn, watermark, alpha, beta, attacks, show_threshold))"""
-
-	"""alpha_range = [25, 30, 50, 60]
+			work.append((images,embed_watermark_tn, extract_watermark_tn, watermark, alpha, beta, attacks, show_threshold))
+	
+	alpha_range = [25, 50, 60, 75, 250] 
 	for alpha in alpha_range:
-		alpha = int(alpha)
 		for level in [DWT_LEVEL - 1, DWT_LEVEL, DWT_LEVEL + 1]:
 			for subband in [["LL"], ["HL", "LH"]]:
-				work.append((images, embed_watermark_dct, extract_watermark_dct, watermark, alpha, level, subband, attacks, show_threshold))"""
+				work.append((images, embed_watermark_dct, extract_watermark_dct, watermark, alpha, level, subband, attacks, show_threshold))
 	
 	result = multiprocessed_workload(create_model, work)
 	print(result)
