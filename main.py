@@ -16,6 +16,7 @@ def evaluate_model(params, order_of_execution):
 	attacks = params[4]
 	watermarked_image = params[5]
 	extraction_function = params[6]
+	
 	model_name = '_'.join(watermarked_image_name.split('_')[1:])
 	print(model_name)
 	scores, labels, threshold, tpr, fpr, params = read_model(model_name)
@@ -35,6 +36,9 @@ def evaluate_model(params, order_of_execution):
 		elif extraction_function == extract_watermark_tn:
 			alpha,beta = params
 			extracted_watermark = extract_watermark_tn(original_img, img_name, attacked_img, alpha, beta)
+		elif extraction_function == extract_watermark_dct:
+			_, alpha,level,subband = params
+			extracted_watermark = extract_watermark_dct(original_img, img_name, attacked_img, alpha, level, subband)
 		else:
 			print(f'Extraction function {extraction_function} does not exist!')
 		sim = similarity(watermark, extracted_watermark)
@@ -74,6 +78,12 @@ def multiproc_embed_watermark(params, order_of_execution):
 	params = "_".join([str(alpha),str(level),"-".join(subband)])
 	return order_of_execution, original_img, img_name, params, watermarked_img
 
+def multiproc_embed_watermark_dct(params, order_of_execution):
+	original_img, img_name, watermark, alpha, level, subband = params
+	watermarked_img = embed_watermark_dct(original_img, img_name, watermark, alpha, level, subband)
+	params = "_".join(['dct',str(alpha),str(level),"-".join(subband)])
+	return order_of_execution, original_img, img_name, params, watermarked_img
+
 def main():
 	# Get one random image
 	N_IMAGES_LIMIT = 7
@@ -90,8 +100,10 @@ def main():
 	watermarked_images = {}
 	print('Welcome to multiprocessing city')
 	print('Embedding...')
-	alpha_range = [25,50,75,100]
+	
+	alpha_range = [50,75,100,150]
 	work = []
+	
 	for image in images:
 		original_img, img_name = image
 		for alpha in alpha_range:
@@ -99,14 +111,11 @@ def main():
 			for level in [DWT_LEVEL-1,DWT_LEVEL,DWT_LEVEL+1]:
 				for subband in [["LL"], ["HL","LH"]]:
 					work.append((original_img, img_name, watermark, alpha, level, subband))
-					# watermarked_img = embed_watermark(original_img, img_name, watermark, alpha, level, subband)
-					# params = "_".join([str(alpha),str(level),"-".join(subband)])
-					# watermarked_images[img_name + '_' + params] = (original_img, img_name, watermarked_img,extract_watermark)
+
 	results = multiprocessed_workload(multiproc_embed_watermark,work)
 	for result in results:
 		original_img, img_name, params, watermarked_img = result
 		watermarked_images[img_name + '_' + params] = (original_img, img_name, watermarked_img, extract_watermark)
-	
 	
 	alpha_range = [10, 20, 40, 60]
 	beta_range = [0.005, 0.01, 0.1,0.2,0.3,0.4,0.5,0.6]
@@ -116,14 +125,26 @@ def main():
 		for alpha in alpha_range:
 			for beta in beta_range:
 				work.append((original_img, img_name, watermark, alpha, beta))
-				# watermarked_img = embed_watermark_tn(original_img, img_name, watermark, alpha, beta)
-				# params = "_".join([str(alpha),str(beta)])
-				# watermarked_images[img_name + '_' + params] = (original_img, img_name, watermarked_img, extract_watermark_tn)
+
 	results = multiprocessed_workload(multiproc_embed_watermark_tn,work)
 
 	for result in results:
 		original_img, img_name, params, watermarked_img = result
 		watermarked_images[img_name + '_' + params] = (original_img, img_name, watermarked_img, extract_watermark_tn)
+	
+	alpha_range = [25, 50, 75, 100, 150, 250]
+	for image in images:
+		original_img, img_name = image
+		for alpha in alpha_range:
+			for level in [DWT_LEVEL - 1, ]: # DWT_LEVEL, DWT_LEVEL + 1
+				for subband in [["LL"], ["HL", "LH"]]:
+					work.append((original_img, img_name, watermark, alpha, level, subband))
+	
+	results = multiprocessed_workload(multiproc_embed_watermark_dct,work)
+
+	for result in results:
+		original_img, img_name, params, watermarked_img = result
+		watermarked_images[img_name + '_' + params] = (original_img, img_name, watermarked_img, extract_watermark_dct)
 
 	print("Let the Hunger Games begin!")
 	
@@ -160,7 +181,7 @@ def main():
 			best_model = model
 			max_score = model['Score']
 			best_technique = model_name
-
+	print("="*10)
 	print(all_models)
 	
 	

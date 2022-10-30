@@ -2,8 +2,8 @@ import numpy as np
 import pickle
 from tools import read_model
 from config import DWT_LEVEL
-alpha_range = [10,20,40,60]
-beta_range = [0.005,0.01,0.1,0.2,0.3,0.4,0.5,0.6] 
+alpha_range = [10,20,40,60] 
+beta_range = [0.005,0.01,0.1,0.2,0.3,0.4,0.5,0.6]
 
 for alpha in alpha_range:
     for beta in beta_range:
@@ -14,13 +14,14 @@ for alpha in alpha_range:
         print(str(alpha) + '_' + str(beta), tpr, fpr, threshold)
 
 print("="*10)
-alpha_range = [25,50,75,100]
+alpha_range = [50,75,100,150]
 for alpha in alpha_range:
-    for level in [DWT_LEVEL-1,2,DWT_LEVEL+1]:
+    for level in [DWT_LEVEL-1,DWT_LEVEL,DWT_LEVEL+1]:
         for subband in [["LL"], ["HL","LH"]]:
             alpha = str(int(alpha))
             level = str(level)
             subband = "-".join(subband)
+            print(alpha + '_' + level + '_' + subband)
             (scores, labels, threshold, tpr, fpr, params) = read_model(alpha + '_' + level + '_' + subband)
             tpr = round(tpr,2)
             fpr = round(fpr,2)
@@ -30,7 +31,7 @@ for alpha in alpha_range:
 
 print("="*10)
 
-alpha_range = [25, 50, 60, 75, 250] 
+alpha_range = [25, 50, 75, 100, 150, 250]
 for alpha in alpha_range:
     for level in [DWT_LEVEL - 1, DWT_LEVEL, DWT_LEVEL + 1]:
         for subband in [["LL"], ["HL", "LH"]]:
