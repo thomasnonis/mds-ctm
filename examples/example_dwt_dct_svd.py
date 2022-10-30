@@ -143,7 +143,7 @@ def extract_watermark_dct(original_img: np.ndarray, img_name: str, watermarked_i
         final_watermark += watermark[0]
     final_watermark = final_watermark / len(subbands)
 
-    show_images(watermarks + [(final_watermark, "Final")], 1, 3)
+    # show_images(watermarks + [(final_watermark, "Final")], 1, 3)
     """plt.figure()
     plt.subplot(121)
     plt.title("Final Watermark")
@@ -152,26 +152,39 @@ def extract_watermark_dct(original_img: np.ndarray, img_name: str, watermarked_i
     return final_watermark
 
 
-subbands = ['HL', 'LH']
+subbands = [ 'HL', 'LH'] # ['LL']
 images = import_images("../" + IMG_FOLDER_PATH, N_IMAGES_LIMIT, True)
 watermark = np.load("../failedfouriertransform.npy").reshape((MARK_SIZE, MARK_SIZE))
 w_images = []
 w_extracted = []
+wpsnr_sum = 0
 
 for i in images:
-    w = embed_watermark_dct(i[0], i[1], watermark, ALPHA_TN, DWT_LEVEL, subbands)
+    # w = embed_watermark_tn(i[0], i[1], watermark, ALPHA_GAS, BETA)
+    # w = embed_watermark(i[0], i[1], watermark, ALPHA_GAS, DWT_LEVEL, subbands)
+    w = embed_watermark_dct(i[0], i[1], watermark, ALPHA_GAS, DWT_LEVEL, subbands)
     w_images.append((w, "Watermarked " + i[1]))
-    print("WPSNR ", i[1], ": ", wpsnr(w, i[0]))
+
+    quality = wpsnr(w, i[0])
+    print("WPSNR ", i[1], ": ", quality)
+    wpsnr_sum += quality
     attacks_list = get_random_attacks(1)
     attacked = do_attacks(w, attacks_list)
     print("WPSNR attacked with ", attacked[1], i[1], ": ", wpsnr(attacked[0], i[0]))
-    e = extract_watermark_dct(attacked[0], i[1], w, ALPHA_TN, DWT_LEVEL, subbands)
+
+    # e = extract_watermark_tn(i[0], i[1], attacked[0], ALPHA_GAS, BETA)
+    # e = extract_watermark(i[0], i[1], attacked[0], ALPHA_GAS, DWT_LEVEL, subbands)
+    e = extract_watermark_dct(i[0], i[1], attacked[0], ALPHA_GAS, DWT_LEVEL, subbands)
+
+    # Embedding quality
     # e = extract_watermark_dct(i[0], i[1], w, ALPHA_TN, DWT_LEVEL, subbands)
     w_extracted.append((e, "Extracted " + i[1]))
+
     print("SIM extraction ", i[1], ": ", similarity(watermark, e))
 
-show_images(images + w_images, 2, len(images))
-show_images([(watermark, "Original")] + w_extracted, 2, 2)
+print("WPSNR mean: ", wpsnr_sum / 20)
+"""show_images(images + w_images, 2, len(images))
+show_images([(watermark, "Original")] + w_extracted, 2, 2)"""
 """
 print(results)
 # Compute threshold
