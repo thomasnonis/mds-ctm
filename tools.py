@@ -467,6 +467,7 @@ def embed_watermark_dct(original_img: np.ndarray, img_name: str, watermark: np.n
         band = dct(dct(band, axis=0, norm='ortho'), axis=1, norm='ortho')
 
         band_svd, svd_key = embed_into_svd(band, watermark, alpha)
+        save_parameters(img_name + '_' + 'dct' +  '_' + str(alpha) + '_' + subband + str(level), svd_key)
 
         band_svd = idct(idct(band_svd, axis=1, norm='ortho'), axis=0, norm='ortho')
 
@@ -612,7 +613,7 @@ def create_model(params, order_of_execution):
             alpha = params[3]
             level = params[4]
             subband = params[5]
-            new_params = (alpha, level, subband)  # Doing this in a loop is useless, is needed only once
+            new_params = ('dct',alpha, level, subband)  # Doing this in a loop is useless, is needed only once
             watermarked_img = embed_watermark_dct(original_img, img_name, watermark, alpha, level, subband)
         else:
             print(f'Embedding function {embedding_function} does not exist!')

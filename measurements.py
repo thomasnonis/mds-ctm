@@ -143,7 +143,9 @@ def compute_thr_multiple_images(extraction_function, images, original_watermark,
 			model_name.append('-'.join(x))
 		else:
 			model_name.append(str(x))
-
+	if extraction_function == extract_watermark_dct:
+		model_name = ['dct'] + model_name
+	
 	model_name = '_'.join(model_name)
 	if exists_model(model_name):
 		(scores, labels, _, _, _, _) = read_model(model_name)
@@ -170,9 +172,9 @@ def compute_thr_multiple_images(extraction_function, images, original_watermark,
 				beta = params[1]
 				extracted_watermark = extract_watermark_tn(original_img, img_name, attacked_img, alpha, beta)
 			elif extraction_function == extract_watermark_dct:
-				alpha = params[0]
-				level = params[1]
-				subband = params[2]
+				alpha = params[1]
+				level = params[2]
+				subband = params[3]
 				extracted_watermark = extract_watermark_dct(original_img, img_name, attacked_img, alpha, level, subband)
 			else:
 				print(f'Extraction function {extraction_function} does not exist!')
