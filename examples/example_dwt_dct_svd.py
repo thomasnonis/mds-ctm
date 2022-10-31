@@ -13,12 +13,6 @@ from tools import *
 start_time = time()
 print('Starting DWT_DCT_SVD...')
 
-# Load images
-n_images = min(1, N_IMAGES_LIMIT)
-images = import_images('../' + IMG_FOLDER_PATH, n_images, True)
-watermark = generate_watermark(MARK_SIZE)
-
-
 def embed_watermark_dct(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, level,
                         subbands: list) -> np.ndarray:
     """Embeds a watermark into the S component of the SVD decomposition of an image's LL DWT subband
@@ -152,7 +146,7 @@ def extract_watermark_dct(original_img: np.ndarray, img_name: str, watermarked_i
     return final_watermark
 
 
-subbands = [ 'HL', 'LH'] # ['LL']
+subbands = ['HL', 'LH']
 images = import_images("../" + IMG_FOLDER_PATH, N_IMAGES_LIMIT, True)
 watermark = np.load("../failedfouriertransform.npy").reshape((MARK_SIZE, MARK_SIZE))
 w_images = []
@@ -160,9 +154,9 @@ w_extracted = []
 wpsnr_sum = 0
 
 for i in images:
-    # w = embed_watermark_tn(i[0], i[1], watermark, ALPHA_GAS, BETA)
-    # w = embed_watermark(i[0], i[1], watermark, ALPHA_GAS, DWT_LEVEL, subbands)
-    w = embed_watermark_dct(i[0], i[1], watermark, ALPHA_GAS, DWT_LEVEL, subbands)
+    # w = embed_watermark_tn(i[0], i[1], watermark, ALPHA_TN, BETA)
+    w = embed_watermark(i[0], i[1], watermark, ALPHA_GAS, DWT_LEVEL, subbands)
+    # w = embed_watermark_dct(i[0], i[1], watermark, ALPHA_GAS, DWT_LEVEL_GAS, subbands)
     w_images.append((w, "Watermarked " + i[1]))
 
     quality = wpsnr(w, i[0])
@@ -172,9 +166,9 @@ for i in images:
     attacked = do_attacks(w, attacks_list)
     print("WPSNR attacked with ", attacked[1], i[1], ": ", wpsnr(attacked[0], i[0]))
 
-    # e = extract_watermark_tn(i[0], i[1], attacked[0], ALPHA_GAS, BETA)
-    # e = extract_watermark(i[0], i[1], attacked[0], ALPHA_GAS, DWT_LEVEL, subbands)
-    e = extract_watermark_dct(i[0], i[1], attacked[0], ALPHA_GAS, DWT_LEVEL, subbands)
+    # e = extract_watermark_tn(i[0], i[1], attacked[0], ALPHA_TN, BETA)
+    e = extract_watermark(i[0], i[1], attacked[0], ALPHA_GAS, DWT_LEVEL, subbands)
+    # e = extract_watermark_dct(i[0], i[1], attacked[0], ALPHA_GAS, DWT_LEVEL_GAS, subbands)
 
     # Embedding quality
     # e = extract_watermark_dct(i[0], i[1], w, ALPHA_TN, DWT_LEVEL, subbands)
@@ -182,7 +176,7 @@ for i in images:
 
     print("SIM extraction ", i[1], ": ", similarity(watermark, e))
 
-print("WPSNR mean: ", wpsnr_sum / 20)
+print("Alpha:", ALPHA_GAS, "Level:", DWT_LEVEL_GAS, "WPSNR mean:", wpsnr_sum / N_IMAGES_LIMIT, "Mark:", wpsnr_to_mark(wpsnr_sum / N_IMAGES_LIMIT))
 """show_images(images + w_images, 2, len(images))
 show_images([(watermark, "Original")] + w_extracted, 2, 2)"""
 """

@@ -115,22 +115,23 @@ def compute_ROC(scores, labels, alpha, show: bool = True):
 	fpr, tpr, thr = roc_curve(np.asarray(labels), np.asarray(scores), drop_intermediate=False)
 	# compute AUC
 	roc_auc = auc(fpr, tpr)
-	plt.figure()
-	lw = 2
+	if show is True:
+		plt.figure()
+		lw = 2
 
-	plt.plot(fpr, tpr, color='darkorange',
-			 lw=lw, label='AUC = %0.2f' % roc_auc)
-	plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-	plt.xlim([-0.01, 1.0])
-	plt.ylim([0.0, 1.05])
-	plt.xlabel('False Positive Rate')
-	plt.ylabel('True Positive Rate')
-	plt.title(f'Receiver Operating Characteristic (ROC) with alpha {str(alpha)}')
-	plt.legend(loc="lower right")
+		plt.plot(fpr, tpr, color='darkorange',
+				 lw=lw, label='AUC = %0.2f' % roc_auc)
+		plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+		plt.xlim([-0.01, 1.0])
+		plt.ylim([0.0, 1.05])
+		plt.xlabel('False Positive Rate')
+		plt.ylabel('True Positive Rate')
+		plt.title(f'Receiver Operating Characteristic (ROC) with alpha {str(alpha)}')
+		plt.legend(loc="lower right")
+		plt.show()
 	idx_tpr = np.where((fpr - TARGET_FPR) == min(i for i in (fpr - TARGET_FPR) if i > 0))
 	print('For a FPR approximately equals to %0.2f corresponds a TPR equal to %0.2f and a threshold equal to %0.4f with FPR equal to %0.2f' % (TARGET_FPR, tpr[idx_tpr[0][0]], thr[idx_tpr[0][0]], fpr[idx_tpr[0][0]]))
-	if show is True:
-		plt.show()
+
 	return thr[idx_tpr[0][0]], tpr[idx_tpr[0][0]], fpr[idx_tpr[0][0]] # return thr
 
 def compute_thr_multiple_images(extraction_function, images, original_watermark, params, attacks, show: bool = True):

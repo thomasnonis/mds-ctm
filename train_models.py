@@ -4,11 +4,12 @@ from datetime import datetime
 from config import *
 from measurements import *
 from tools import *
+import os
 
 
 def main():
 	# Load images
-	images = import_images(IMG_FOLDER_PATH, N_IMAGES_LIMIT, True)
+	images = import_images(IMG_FOLDER_PATH, min(len(os.listdir(IMG_FOLDER_PATH)), N_IMAGES_LIMIT), False)
 
 	# Generate watermark
 	watermark = np.load("failedfouriertransform.npy").reshape((MARK_SIZE, MARK_SIZE))
@@ -23,7 +24,7 @@ def main():
 	work = []
 	# TODO: Avoid retraining models already trained, or implement logic to continue training already trained models with new samples
 	
-	alpha_range = [50, 75, 100, 150]
+	"""alpha_range = [25,50,75,100]
 	for alpha in alpha_range:
 		alpha = int(alpha)
 		for level in [DWT_LEVEL-1,DWT_LEVEL,DWT_LEVEL+1]:
@@ -34,12 +35,12 @@ def main():
 	beta_range = [0.005,0.01,0.1,0.2,0.3,0.4,0.5,0.6]
 	for alpha in alpha_range:
 		for beta in beta_range:
-			work.append((images,embed_watermark_tn, extract_watermark_tn, watermark, alpha, beta, attacks, show_threshold))
-
-	alpha_range = [25, 50, 75, 100, 150, 250]
+			work.append((images,embed_watermark_tn, extract_watermark_tn, watermark, alpha, beta, attacks, show_threshold))"""
+	
+	alpha_range = [25]
 	for alpha in alpha_range:
-		for level in [DWT_LEVEL - 1, DWT_LEVEL, DWT_LEVEL + 1]:
-			for subband in [["LL"], ["HL", "LH"]]:
+		for level in [DWT_LEVEL_GAS]:
+			for subband in [["HL", "LH"]]:
 				work.append((images, embed_watermark_dct, extract_watermark_dct, watermark, alpha, level, subband, attacks, show_threshold))
 
 	result = multiprocessed_workload(create_model, work)
