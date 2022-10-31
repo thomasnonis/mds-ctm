@@ -108,7 +108,7 @@ def import_images(img_folder_path: str, num_images: int, shuffle: bool = False) 
     """
     if not os.path.isdir(img_folder_path):
         exit('Error: Images folder not found')
-
+    num_images = min(num_images, len(os.listdir(img_folder_path)))
     images = []
     paths = os.listdir(img_folder_path)
     if shuffle:

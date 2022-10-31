@@ -202,7 +202,7 @@ def create_model(params, order_of_execution):
 
 def train_models():
 	# Load images
-	images = import_images(IMG_FOLDER_PATH, min(len(os.listdir(IMG_FOLDER_PATH)), N_IMAGES_LIMIT), False)
+	images = import_images(IMG_FOLDER_PATH, N_IMAGES_LIMIT, False)
 
 	# Generate watermark
 	watermark = np.load("failedfouriertransform.npy").reshape((MARK_SIZE, MARK_SIZE))
@@ -242,7 +242,7 @@ def print_models():
                 print(('dct' + '_' + alpha + '_' + level + '_' + subband).ljust(15), tpr, fpr, threshold)
 
 def threshold_computation():
-    images = import_images(IMG_FOLDER_PATH, min(len(os.listdir(IMG_FOLDER_PATH)), N_IMAGES_LIMIT), False)
+    images = import_images(IMG_FOLDER_PATH, N_IMAGES_LIMIT, False)
     watermark = np.load("failedfouriertransform.npy").reshape((MARK_SIZE, MARK_SIZE))
     attacks = []
     # 2. In a loop, attack one by one these images (with random attacks or the strategy you prefer)
