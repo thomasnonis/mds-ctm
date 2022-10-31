@@ -63,17 +63,6 @@ def compute_thr_multiple_images(extraction_function, images, original_watermark,
     scores = []
     labels = []
 
-    model_name = []
-    for x in params:
-        if type(x) == list:
-            model_name.append('-'.join(x))
-        else:
-            model_name.append(str(x))
-    if extraction_function == extract_watermark:
-        model_name = ['dct'] + model_name
-    
-    model_name = '_'.join(model_name)
-
     n_images = len(images)
     i = 0
     m = 0
@@ -98,17 +87,27 @@ def compute_thr_multiple_images(extraction_function, images, original_watermark,
             else:
                 print(f'Extraction function {extraction_function} does not exist!')
 
-            # 4. Compute sim(Woriginal,Wextracted) and append it in the scores array and the value 1 in the labels array. These values will correspond to the true positive hypothesis.
-            # true positive population
-            scores.append(similarity(original_watermark, extracted_watermark))
-            labels.append(1)
-
-            # perform multiple comparisons with random watermarks to better train the classifier against false positives
-            # 5. Generate a random watermark Wrandom and compute sim(Wrandom,Wextracted) to append it in the scores array and the value 0 in the labels array. These values will correspond to the true negative hypothesis.
             for k in range(0, N_FALSE_WATERMARKS_GENERATIONS):
+                # 4. Compute sim(Woriginal,Wextracted) and append it in the scores array and the value 1 in the labels array. These values will correspond to the true positive hypothesis.
+                # true positive population
+                scores.append(similarity(original_watermark, extracted_watermark))
+                labels.append(1)
+                scores.append(similarity(original_watermark, extracted_watermark))
+                labels.append(1)
+
+                # perform multiple comparisons with random watermarks to better train the classifier against false positives
+                # 5. Generate a random watermark Wrandom and compute sim(Wrandom,Wextracted) to append it in the scores array and the value 0 in the labels array. These values will correspond to the true negative hypothesis.
+                
                 print('{}/{} - Performed attack {}/{} on image {}/{} ({}) - false check {}/{} - attacks: {}'.format(m + 1, n_computations, j%RUNS_PER_IMAGE, RUNS_PER_IMAGE, i + 1, n_images, img_name, k + 1, N_FALSE_WATERMARKS_GENERATIONS, attacks_list))
                 # true negative population
-                scores.append(similarity(generate_watermark(MARK_SIZE), extracted_watermark))
+                fake_watermark = generate_watermark(MARK_SIZE)
+                fake_watermarked_img, fake_svd_keys = embed_watermark(original_img, img_name, fake_watermark, ALPHA, DWT_LEVEL, SUBBANDS)
+                extracted_fake_watermark = extract_watermark(original_img, img_name, fake_watermarked_img, ALPHA, DWT_LEVEL, SUBBANDS, fake_svd_keys)
+                scores.append(similarity(extracted_fake_watermark, extracted_watermark))
+                labels.append(0)
+
+                extracted_original_watermark = extract_watermark(original_img, img_name, original_img, ALPHA, DWT_LEVEL, SUBBANDS, svd_keys[img_name.lower()])
+                scores.append(similarity(extracted_original_watermark, extracted_watermark))
                 labels.append(0)
                 m += 1
         i += 1
