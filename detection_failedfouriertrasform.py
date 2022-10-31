@@ -697,11 +697,7 @@ def threshold_computation():
             attacks.append(get_random_attacks(randint(1, MAX_N_ATTACKS)))
     work = []
     show_threshold = True
-    alpha_range = [25]
-    for alpha in alpha_range:
-        for level in [DWT_LEVEL]:
-            for subband in [["HL", "LH"]]:
-                work.append((images, embed_watermark_dct, extract_watermark_dct, watermark, alpha, level, subband, attacks, show_threshold))
+    work.append((images, embed_watermark_dct, extract_watermark_dct, watermark, ALPHA, DWT_LEVEL, SUBBANDS, attacks, show_threshold))
     result = multiprocessed_workload(create_model, work)
     print(result)
 
