@@ -1,6 +1,5 @@
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import medfilt2d
-import matplotlib as mpl
 from skimage.transform import rescale, resize as skimage_resize
 import numpy as np
 import cv2
@@ -55,7 +54,11 @@ def jpeg_compression(img, QF):
 	img.save(id,"JPEG", quality=QF)
 	attacked = Image.open(id)
 	attacked = np.asarray(attacked,dtype=np.uint8)
-	os.remove(id)
+	while(os.path.exists(id)):
+		try:
+			os.remove(id)
+		except Exception as e:
+			print('Error while deleting file: ' + id)
 	return attacked
 
 
@@ -67,7 +70,7 @@ def get_random_attacks(num_attacks):
 		attack = randint(0, N_AVAILABLE_ATTACKS - 1)
 		if attack == 0:
 			awgn_mean = randint(-5, 5)
-			awgn_std_dev = (random() * (5 - 0.2)) + 0.2
+			awgn_std_dev = round((random() * (5 - 0.2)) + 0.2, 2)
 			awgn_seed = randint(0, 1000)
 			attacks_list.append(
 				{
@@ -92,8 +95,8 @@ def get_random_attacks(num_attacks):
 				}
 			)
 		elif attack == 2:
-			sharpen_sigma = (random() * (5 - 0.2)) + 0.2
-			sharpen_alpha = random() * (5 - 0.1) + 0.1
+			sharpen_sigma = round((random() * (5 - 0.2)) + 0.2, 2)
+			sharpen_alpha = round(random() * (5 - 0.1) + 0.1, 2)
 
 			attacks_list.append(
 				{
