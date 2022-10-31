@@ -262,7 +262,7 @@ def detection(original_path, watermarked_path, attacked_path):
     if watermarked_path.lower().split('/')[-1].split('_')[-1].split('.')[0] == TEAM_NAME:
         img_name = watermarked_path.lower().split('/')[-1].split('_')[0]
     else:
-        img_name = watermarked_path.lower().split('/')[-1].split('.')[-1].split('_')[-1]
+        img_name = watermarked_path.lower().split('/')[-1].split('.')[-2].split('_')[-1]
     original_watermark = extract_watermark(original_img, img_name, watermarked_img, ALPHA, DWT_LEVEL, SUBBANDS, svd_keys[img_name])
     attacked_watermark = extract_watermark(original_img, img_name, attacked_img, ALPHA, DWT_LEVEL, SUBBANDS, svd_keys[img_name])
     
