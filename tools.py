@@ -199,7 +199,7 @@ def check_py_version():
 		sys.exit("Test failed")
 	print("All good! You have python3.8 installed.")
 
-def update_parameters(filename, svd_keys, **kwargs):
+def update_parameters(filename, **kwargs):
     start_string = '# ////VARIABLES START////'
     end_string = '# ////VARIABLES END////'
 
@@ -221,17 +221,6 @@ def update_parameters(filename, svd_keys, **kwargs):
     for key in kwargs.keys():
         if type(kwargs[key]) != dict:
             string += key + ' = ' + str(kwargs[key]) + '\n'
-
-    # keys must be a dictionary with the following structure: key['lena'] = [(svd_u, svd_u)]
-    string += 'svd_keys = {}'
-    for keys_key in svd_keys.keys():
-        string += '\nsvd_keys[\'{}\']'.format(keys_key) + ' = (' + np.array2string(svd_keys[keys_key][0], separator=',',
-                                                                                   suppress_small=False,
-                                                                                   threshold=9999999,
-                                                                                   max_line_width=9999999).replace('\n',
-                                                                                                                   '') + '), (' + np.array2string(
-            svd_keys[keys_key][1], separator=',', suppress_small=False, threshold=9999999,
-            max_line_width=9999999).replace('\n', '') + ')'
 
     if start_line == -1 or end_line == -1:
         start_line = 0

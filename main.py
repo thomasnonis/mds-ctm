@@ -6,34 +6,26 @@ from attacks import *
 from tools import *
 from detection_failedfouriertransform import extract_watermark, similarity, wpsnr
 from embedment_failedfouriertransform import embed_watermark
+from roc_failedfouriertransform import read_model
 
 def evaluate_model(params, order_of_execution):
-	original_img = params[0]
-	img_name = params[1]
-	watermarked_image_name = params[2]
-	watermark = params[3]
-	attacks = params[4]
-	watermarked_image = params[5]
-	extraction_function = params[6]
+	original_img, img_name, watermarked_image_name, watermark, attacks, watermarked_image, alpha, level, subband = params
 	
 	model_name = '_'.join(watermarked_image_name.split('_')[1:])
 	print(model_name)
-	scores, labels, threshold, tpr, fpr, params = read_model(model_name)
+	_, _, threshold, _, _ = read_model(model_name)
 		
 	successful = 0
 	wpsnr_tot = 0
 	sim_tot = 0
 	model_stats = {}
-	#watermarked_image, extraction_function = watermarked_images[watermarked_image_name]
+	
 	print("Threshold: ", threshold)
 	for attack in attacks:
 		attacked_img, _ = do_attacks(watermarked_image,attack)
 		extracted_watermark = None
-		if extraction_function == extract_watermark:
-			_, alpha,level,subband = params
-			extracted_watermark = extract_watermark(original_img, img_name, attacked_img, alpha, level, subband)
-		else:
-			print(f'Extraction function {extraction_function} does not exist!')
+		extracted_watermark = extract_watermark(original_img, img_name, attacked_img, alpha, level, subband)
+		
 		sim = similarity(watermark, extracted_watermark)
 		_wpsnr = wpsnr(original_img, attacked_img)
 		if sim < threshold and  _wpsnr > 35:
@@ -59,15 +51,15 @@ def evaluate_model(params, order_of_execution):
 
 	return order_of_execution, model_name, model_stats
 
-def multiproc_embed_watermark_dct(params, order_of_execution):
+def multiproc_embed_watermark(params, order_of_execution):
 	original_img, img_name, watermark, alpha, level, subband = params
-	watermarked_img, _ = embed_watermark(original_img, img_name, watermark, alpha, level, subband)
-	params = "_".join(['dct',str(alpha),str(level),"-".join(subband)])
-	return order_of_execution, original_img, img_name, params, watermarked_img
+	watermarked_img = embed_watermark(original_img, img_name, watermark, alpha, level, subband)
+	
+	return order_of_execution, original_img, img_name, alpha, level, subband, watermarked_img
 
 def main():
 	# Get one random image
-	N_IMAGES_LIMIT = 7
+	N_IMAGES_LIMIT = 10
 	images = import_images(IMG_FOLDER_PATH,N_IMAGES_LIMIT,True)
 
 	# Generate watermark
@@ -81,28 +73,29 @@ def main():
 	watermarked_images = {}
 	print('Welcome to multiprocessing city')
 	print('Embedding...')
-	
+	work = []
 	alpha_range = [25, 50, 75, 100, 150, 250]
 	for image in images:
 		original_img, img_name = image
 		for alpha in alpha_range:
-			for level in [DWT_LEVEL - 1, ]: # DWT_LEVEL, DWT_LEVEL + 1
+			for level in [DWT_LEVEL - 3, DWT_LEVEL - 2, DWT_LEVEL - 1, DWT_LEVEL ]:
 				for subband in [["LL"], ["HL", "LH"]]:
 					work.append((original_img, img_name, watermark, alpha, level, subband))
 	
-	results = multiprocessed_workload(multiproc_embed_watermark_dct,work)
+	results = multiprocessed_workload(multiproc_embed_watermark,work)
 
 	for result in results:
-		original_img, img_name, params, watermarked_img = result
-		watermarked_images[img_name + '_' + params] = (original_img, img_name, watermarked_img, extract_watermark)
+		original_img, img_name, alpha, level, subband, watermarked_img = result
+		params = '_'.join([str(alpha),str(level),'-'.join(subband)])
+		watermarked_images[img_name + '_' + params] = (original_img, img_name, watermarked_img, alpha, level, subband)
 
 	print("Let the Hunger Games begin!")
 	
 	work = []
 
 	for watermarked_image_name in watermarked_images:
-		original_img, img_name, watermarked_image, extraction_function  = watermarked_images[watermarked_image_name]
-		work.append((original_img, img_name, watermarked_image_name, watermark, attacks, watermarked_image, extraction_function))
+		original_img, img_name, watermarked_image, alpha, level, subband  = watermarked_images[watermarked_image_name]
+		work.append((original_img, img_name, watermarked_image_name, watermark, attacks, watermarked_image, alpha, level, subband))
 	
 	results = multiprocessed_workload(evaluate_model,work)
 	print(results)
@@ -139,7 +132,7 @@ def main():
 	print(best_model)
 	for image in images:
 		original_img, img_name = image
-		_, _, watermarked_img, _ = watermarked_images[img_name + '_' + best_technique]
+		_, _, watermarked_img, _, _, _ = watermarked_images[img_name + '_' + best_technique]
 		cv2.imwrite(img_name + '_' + best_technique + '.bmp', watermarked_img)
 
 if __name__ == '__main__':

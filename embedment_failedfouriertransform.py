@@ -2,8 +2,8 @@ import numpy as np
 from tools import wavedec2d, waverec2d, dct2d, idct2d
 
 
-def embed_into_svd(img: np.ndarray, watermark: list, alpha: float) -> tuple:
-    """Embeds the watermark into the S component of the SVD decomposition of the image
+def embed_into_dct(img: np.ndarray, watermark: list, alpha: float) -> tuple:
+    """Embeds the watermark into the DCT tranfom of a subband
 
     Args:
         img (np.ndarray): Image in which to embed the watermark
@@ -11,31 +11,19 @@ def embed_into_svd(img: np.ndarray, watermark: list, alpha: float) -> tuple:
         alpha (float): Embedding strength coefficient
 
     Returns:
-        tuple: (Watermarked image: np.ndarray, SVD key matrices: tuple)
+        tuple: Watermarked image: np.ndarray
     """
-    (svd_u, svd_s, svd_v) = np.linalg.svd(img)
-
-    # Convert S from a 1D vector to a 2D diagonal matrix
-    svd_s = np.diag(svd_s)
-
-    # Embed the watermark in the SVD matrix
+    watermarked = img.copy()
+    # Embed the watermark in the DCT matrix
     for x in range(0, watermark.shape[0]):
         for y in range(0, watermark.shape[1]):
-            svd_s[x][y] += alpha * watermark[x][y]
+            watermarked[x][y] += alpha * watermark[x][y]
 
-    (svd_s_u, svd_s_s, svd_s_v) = np.linalg.svd(svd_s)
-
-    # Convert S from a 1D vector to a 2D diagonal matrix
-    svd_s_s = np.diag(svd_s_s)
-
-    # Recompose matrices from SVD decomposition
-    watermarked = svd_u @ svd_s_s @ svd_v
-    # key = svd_s_u @ svd_s @ svd_s_v
-
-    return (watermarked, (svd_s_u, svd_s_v))
+    
+    return watermarked
 
 def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, level, subbands: list) -> np.ndarray:
-    """Embeds a watermark into the S component of the SVD decomposition of an image's LL DWT subband
+    """Embeds a watermark into the DWT subband after calculating its DCT tranform
 
     Args:
         original_img (np.ndarray): Image in which to embed the watermark
@@ -66,19 +54,19 @@ def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarr
 
         band = dct2d(band)
 
-        band_svd, svd_key = embed_into_svd(band, watermark, alpha)
+        band_dct = embed_into_dct(band, watermark, alpha)
 
-        band_svd = idct2d(band_svd)
+        band_dct = idct2d(band_dct)
 
         if subband == "LL":
-            coeffs[0] = band_svd
+            coeffs[0] = band_dct
         elif subband == "HL":
-            coeffs[1] = (band_svd, coeffs[1][1], coeffs[1][2])
+            coeffs[1] = (band_dct, coeffs[1][1], coeffs[1][2])
         elif subband == "LH":
-            coeffs[1] = (coeffs[1][0], band_svd, coeffs[1][2])
+            coeffs[1] = (coeffs[1][0], band_dct, coeffs[1][2])
         elif subband == "HH":
-            coeffs[1] = (coeffs[1][0], coeffs[1][1], band_svd)
+            coeffs[1] = (coeffs[1][0], coeffs[1][1], band_dct)
         else:
             raise Exception(f"Subband {subband} does not exist")
 
-    return waverec2d(coeffs), svd_key
+    return waverec2d(coeffs)
