@@ -174,7 +174,7 @@ def print_models():
     # Sometimes this crashes because it can not find the file. Don't know why
     for alpha in range(10,30,2):
         for level in [2]:
-            for subband in [["LL"]]: # , ["HL", "LH"]
+            for subband in [["LL"] , ["HL", "LH"]]:
                 alpha = str(int(alpha))
                 level = str(level)
                 subband = "-".join(subband)
@@ -197,7 +197,7 @@ def threshold_computation():
     show_threshold = False
     for alpha in range(10,30,2):
         for level in [2]:
-            for subband in [["LL"]]: # , ["HL", "LH"]
+            for subband in [["LL"], ["HL", "LH"]]:
                 work.append((images, watermark, alpha, level, subband, attacks, show_threshold))
     result = multiprocessed_workload(create_model, work)
     print(result)
