@@ -67,6 +67,10 @@ def compute_thr_multiple_images(images, original_watermark, attacks, alpha, leve
     i = 0
     m = 0
     attack_idx = 0
+    model_name = '_'.join([str(alpha),str(level),'-'.join(subband)])
+    if exists_model(model_name):
+        scores, labels, _, _, _ = read_model(model_name)
+
     n_computations = n_images * RUNS_PER_IMAGE * N_FALSE_WATERMARKS_GENERATIONS
     print('Total number of computations: %d' % n_computations)
     
@@ -151,7 +155,7 @@ def create_model(params, order_of_execution):
     watermarked_images = []
     images, watermark, alpha, level, subband, attacks, show_threshold = params
     for original_img, img_name in images:
-        watermarked_img = embed_watermark(original_img, img_name, watermark, alpha, level, subband)        
+        watermarked_img = embed_watermark(original_img, img_name, watermark, alpha, level, subband)
         watermarked_images.append((original_img, watermarked_img, img_name))
 
     scores, labels, (threshold, tpr, fpr) = compute_thr_multiple_images(watermarked_images, watermark, attacks, alpha, level, subband, show_threshold)
