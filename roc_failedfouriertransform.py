@@ -8,7 +8,7 @@ from config import *
 from attacks import *
 from tools import import_images, multiprocessed_workload, update_parameters
 
-from detection_failedfouriertransform import similarity, extract_watermark
+from detection_failedfouriertransform import similarity, extract_watermark, wpsnr
 from embedment_failedfouriertransform import embed_watermark
 
 def compute_ROC(scores, labels, alpha, show: bool = True):
@@ -79,7 +79,11 @@ def compute_thr_multiple_images(images, original_watermark, attacks, alpha, leve
         for j in range(attack_idx, attack_idx+RUNS_PER_IMAGE):
             attacked_img, attacks_list = do_attacks(watermarked_img, attacks[j])
             
-            # TODO: check if wpsnr if it is a valid attack, if not redo
+            while wpsnr(original_img, attacked_img) < 35:
+                print("Retry", attacks_list, "was too powerful")
+                attack = get_random_attacks(randint(MIN_N_ATTACKS, MAX_N_ATTACKS))
+                attacked_img, attacks_list = do_attacks(watermarked_img, attack)
+            
             # 3. Extract the watermark with your planned technique Wextracted
             extracted_watermark = extract_watermark(original_img, img_name, attacked_img, alpha, level, subband)
             
@@ -161,17 +165,16 @@ def create_model(params, order_of_execution):
     scores, labels, (threshold, tpr, fpr) = compute_thr_multiple_images(watermarked_images, watermark, attacks, alpha, level, subband, show_threshold)
     
     # We should do this only once, when we know what the good parameters are, or remove it entirely
-    update_parameters('detection_failedfouriertransform.py', ALPHA = ALPHA, DWT_LEVEL = DWT_LEVEL, SUBBANDS = SUBBANDS, DETECTION_THRESHOLD = threshold, MARK_SIZE = MARK_SIZE)
+    update_parameters('detection_failedfouriertransform.py', ALPHA = alpha, DWT_LEVEL = level, SUBBANDS = subband, DETECTION_THRESHOLD = threshold, MARK_SIZE = MARK_SIZE)
     
     save_model(scores, labels, threshold, tpr, fpr, alpha, level, subband)
     return order_of_execution, threshold, tpr, fpr, alpha,level,subband
 
 def print_models():
     # Sometimes this crashes because it can not find the file. Don't know why
-    alpha_range = [10,20,30,40,50]
-    for alpha in alpha_range:
-        for level in [DWT_LEVEL - 1, DWT_LEVEL, DWT_LEVEL + 1]:
-            for subband in [["LL"], ["HL", "LH"]]:
+    for alpha in range(10,30,2):
+        for level in [2]:
+            for subband in [["LL"]]: # , ["HL", "LH"]
                 alpha = str(int(alpha))
                 level = str(level)
                 subband = "-".join(subband)
@@ -192,10 +195,9 @@ def threshold_computation():
             attacks.append(get_random_attacks(randint(MIN_N_ATTACKS, MAX_N_ATTACKS)))
     work = []
     show_threshold = False
-    alpha_range = [10,20,30,40,50]
-    for alpha in alpha_range:
-        for level in [DWT_LEVEL - 3, DWT_LEVEL - 2, DWT_LEVEL - 1, DWT_LEVEL]:
-            for subband in [["LL"], ["HL", "LH"]]:
+    for alpha in range(10,30,2):
+        for level in [2]:
+            for subband in [["LL"]]: # , ["HL", "LH"]
                 work.append((images, watermark, alpha, level, subband, attacks, show_threshold))
     result = multiprocessed_workload(create_model, work)
     print(result)

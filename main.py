@@ -17,7 +17,7 @@ def evaluate_model(params, order_of_execution):
 		
 	successful = 0
 	wpsnr_tot = 0
-	sim_tot = 0
+	
 	model_stats = {}
 	
 	print("Threshold: ", threshold)
@@ -31,22 +31,19 @@ def evaluate_model(params, order_of_execution):
 		if sim < threshold and  _wpsnr > 35:
 			successful += 1	
 			wpsnr_tot += _wpsnr
-			sim_tot += sim
+
 			print("The following attack (%s) was succesfull with a similarity of %f and a wpsnr of %f" % (describe_attacks(attack), sim, _wpsnr))
 	model_stats['Succesful Attacks'] =  successful
 	model_stats['Unsuccesful Attacks'] =  RUNS_PER_IMAGE - successful
 	model_stats['WPSNR Original-Watermarked'] = wpsnr(original_img, watermarked_image)
-	if successful > 0:
-		model_stats['AVG WPSNR Succesful Attacks'] = wpsnr_tot / successful
-		model_stats['AVG SIM Succesful Attacks'] = sim_tot / successful
-	else:
-		model_stats['AVG WPSNR Succesful Attacks'] = 0
-		model_stats['AVG SIM Succesful Attacks'] = 0
 	
-	# TODO: Find a better way of calculating the score
-	score = model_stats['WPSNR Original-Watermarked'] * 10 + model_stats['AVG WPSNR Succesful Attacks'] * model_stats['AVG SIM Succesful Attacks'] + 40 * (RUNS_PER_IMAGE - successful)
-	if model_stats['Succesful Attacks'] == 0:
-		score += 500
+	score = 0
+	if successful > 0:
+		score += attacked_wpsnr_to_mark(wpsnr_tot / successful)
+	else:
+		score += 6 + 2
+
+	score = wpsnr_to_mark(model_stats['WPSNR Original-Watermarked'])
 	model_stats['Score'] = score
 
 	return order_of_execution, model_name, model_stats
@@ -74,12 +71,11 @@ def main():
 	print('Welcome to multiprocessing city')
 	print('Embedding...')
 	work = []
-	alpha_range = [10,20,30,40,50]
 	for image in images:
 		original_img, img_name = image
-		for alpha in alpha_range:
-			for level in [DWT_LEVEL - 3, DWT_LEVEL - 2, DWT_LEVEL - 1, DWT_LEVEL ]:
-				for subband in [["LL"], ["HL", "LH"]]:
+		for alpha in range(10,30,2):
+			for level in [2]:
+				for subband in [["LL"]]: # , ["HL", "LH"]
 					work.append((original_img, img_name, watermark, alpha, level, subband))
 	
 	results = multiprocessed_workload(multiproc_embed_watermark,work)
@@ -106,16 +102,16 @@ def main():
 	for model in results:
 		model_name, model = model
 		if model_name in all_models:
-			all_models[model_name]['WPSNR Original-Watermarked'] += (model['WPSNR Original-Watermarked'] / N_IMAGES_LIMIT)
-			all_models[model_name]['AVG WPSNR Succesful Attacks'] += (model['AVG WPSNR Succesful Attacks'] / N_IMAGES_LIMIT)
-			all_models[model_name]['AVG SIM Succesful Attacks'] += (model['AVG SIM Succesful Attacks'] / N_IMAGES_LIMIT)
+			# all_models[model_name]['WPSNR Original-Watermarked'] += (model['WPSNR Original-Watermarked'] / N_IMAGES_LIMIT)
+			# all_models[model_name]['AVG WPSNR Succesful Attacks'] += (model['AVG WPSNR Succesful Attacks'] / N_IMAGES_LIMIT)
+			# all_models[model_name]['AVG SIM Succesful Attacks'] += (model['AVG SIM Succesful Attacks'] / N_IMAGES_LIMIT)
 			all_models[model_name]['Score'] += model['Score']
 			all_models[model_name]['Succesful Attacks'] += model['Succesful Attacks']
 			all_models[model_name]['Unsuccesful Attacks'] += model['Unsuccesful Attacks']
 		else:
-			model['WPSNR Original-Watermarked'] /= N_IMAGES_LIMIT   # Average out the WPSNRs for the same model on different images
-			model['AVG WPSNR Succesful Attacks'] /= N_IMAGES_LIMIT  # Average out the WPSNRs for the same model on different images
-			model['AVG SIM Succesful Attacks'] /= N_IMAGES_LIMIT    # Average out the SIM for the same model on different images
+			# model['WPSNR Original-Watermarked'] /= N_IMAGES_LIMIT   # Average out the WPSNRs for the same model on different images
+			# model['AVG WPSNR Succesful Attacks'] /= N_IMAGES_LIMIT  # Average out the WPSNRs for the same model on different images
+			# model['AVG SIM Succesful Attacks'] /= N_IMAGES_LIMIT    # Average out the SIM for the same model on different images
 			all_models[model_name] = model
 	best_model = {}
 	for model_name in all_models:

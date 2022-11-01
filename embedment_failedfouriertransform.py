@@ -1,5 +1,5 @@
 import numpy as np
-from tools import wavedec2d, waverec2d, dct2d, idct2d
+from tools import wavedec2d, waverec2d, dct2d, idct2d, unsplit, split
 
 
 def embed_into_dct(img: np.ndarray, watermark: list, alpha: float) -> tuple:
@@ -13,20 +13,19 @@ def embed_into_dct(img: np.ndarray, watermark: list, alpha: float) -> tuple:
     Returns:
         tuple: Watermarked image: np.ndarray
     """
-    sign = np.sign(img)
-    ori_dct = abs(img)
-    locations = np.argsort(-ori_dct,axis=None) # - sign is used to get descending order
-    rows = img.shape[0]
-    locations = [(val//rows, val%rows) for val in locations][1:] # locations as (x,y) coordinates, skip DC
+    # img (128,128)
+    blocks = split(img,4,4) # (1024,4,4)
+    output = np.zeros(blocks.shape) # (1024,4,4)
+    watermark = watermark.flatten() # 1024,1
+    for idx,block in enumerate(blocks):
+        dct_block = dct2d(block)
+        dct_block[0][0] += alpha * watermark[idx] # Embed in DC
+        block = idct2d(dct_block)
+        output[idx] = block  
+
+    watermarked = unsplit(output, img.shape[0], img.shape[1])
+    return watermarked
     
-    watermarked_dct = ori_dct
-    for idx, (loc,mark_val) in enumerate(zip(locations, watermark.flatten())):
-        watermarked_dct[loc] += (alpha * mark_val)
-
-    # Restore sign and o back to spatial domain
-    watermarked_dct *= sign
-    return watermarked_dct
-
 def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, level, subbands: list) -> np.ndarray:
     """Embeds a watermark into the DWT subband after calculating its DCT tranform
 
@@ -55,22 +54,16 @@ def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarr
         else:
             raise Exception(f"Subband {subband} does not exist")
 
-        # print(band)
-
-        band = dct2d(band)
-
-        band_dct = embed_into_dct(band, watermark, alpha)
-
-        band_dct = idct2d(band_dct)
+        band = embed_into_dct(band, watermark, alpha)
 
         if subband == "LL":
-            coeffs[0] = band_dct
+            coeffs[0] = band
         elif subband == "HL":
-            coeffs[1] = (band_dct, coeffs[1][1], coeffs[1][2])
+            coeffs[1] = (band, coeffs[1][1], coeffs[1][2])
         elif subband == "LH":
-            coeffs[1] = (coeffs[1][0], band_dct, coeffs[1][2])
+            coeffs[1] = (coeffs[1][0], band, coeffs[1][2])
         elif subband == "HH":
-            coeffs[1] = (coeffs[1][0], coeffs[1][1], band_dct)
+            coeffs[1] = (coeffs[1][0], coeffs[1][1], band)
         else:
             raise Exception(f"Subband {subband} does not exist")
 

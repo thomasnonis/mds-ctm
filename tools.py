@@ -50,6 +50,29 @@ def wpsnr_to_mark(wpsnr: float) -> int:
         return 6
     return 0
 
+def attacked_wpsnr_to_mark(wpsnr: float) -> int:
+    """Convert WPSNR to a competition mark
+
+    Args:
+        wpsnr (float): the WPSNR value in dB
+
+    Returns:
+        int: The mark that corresponds to the WPSNR value according to the competition rules
+    """
+    if wpsnr >= 35 and wpsnr < 38:
+        return 6
+    if wpsnr >= 38 and wpsnr < 41:
+        return 5
+    if wpsnr >= 41 and wpsnr < 44:
+        return 4
+    if wpsnr >= 44 and wpsnr < 47:
+        return 3
+    if wpsnr >= 47 and wpsnr < 50:
+        return 2
+    if wpsnr >= 50 and wpsnr < 53:
+        return 1
+    return 0
+
 def show_images(list_of_images: list, rows: int, columns: int, show: bool = True) -> None:
     """Plot a list of images in a grid of size (rows, columns)
 
@@ -126,9 +149,23 @@ def split(array, nrows, ncols):
     """Split a matrix into sub-matrices."""
 
     r, h = array.shape
-    return (array.reshape(h // nrows, nrows, -1, ncols)
-            .swapaxes(1, 2)
-            .reshape(-1, nrows, ncols))
+    return (array.reshape(h//nrows, nrows, -1, ncols)
+                 .swapaxes(1, 2)
+                 .reshape(-1, nrows, ncols))
+
+def unsplit(submatricies, out_n_rows, out_n_cols):
+    out = np.zeros((out_n_rows,out_n_cols))
+    i = 0
+    j = 0
+    m = submatricies.shape[1]
+    for sub in submatricies:
+        out[i*m:m*(i+1), j*m:m*(j+1)] = sub
+        if m*(j+1) == out_n_rows:
+            j = 0
+            i += 1
+        else:
+            j += 1
+    return out
 
 def make_dwt_image(img_coeffs: list) -> np.ndarray:
     """Creates a DWT image from a given set of DWT coefficients

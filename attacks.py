@@ -24,9 +24,6 @@ def gaussian_blur(img, sigma):
 def average_blur(img, kernel):
 	return cv2.blur(img, (kernel,kernel))
 
-def bilateral_blur():
-	pass
-
 def sharpen(img, sigma, alpha):
 	blurred = gaussian_filter(img, sigma)
 	return img + alpha * (img - blurred)
@@ -84,7 +81,7 @@ def get_random_attacks(num_attacks):
 				}
 			)
 		elif attack == 1:
-			avg_blur_kernel_size = (randint(1, 3) * 2) + 1 # 3, 5, 7
+			avg_blur_kernel_size = (randint(1, 2) * 2) + 1 # 3, 5
 			attacks_list.append(
 				{
 					'function' : average_blur,
@@ -109,7 +106,7 @@ def get_random_attacks(num_attacks):
 				}
 			)
 		elif attack == 3:
-			jpeg_quality_factor = randint(1, 10) * 10 # 10, 20, ..., 100
+			jpeg_quality_factor = randint(3, 10) * 10 # 10, 20, ..., 100
 			attacks_list.append(
 				{
 					'function' : jpeg_compression,
@@ -120,7 +117,7 @@ def get_random_attacks(num_attacks):
 				}
 			)
 		elif attack == 4:
-			resize_scale = randint(1, 9) / 10 # 0.1, 0.2, ..., 0.9
+			resize_scale = randint(5, 9) / 10 # 0.1, 0.2, ..., 0.9
 			attacks_list.append(
 				{
 					'function' : resize,
@@ -131,7 +128,7 @@ def get_random_attacks(num_attacks):
 				}
 			)
 		elif attack == 5:
-			median_kernel_size = (randint(1, 3) * 2) + 1 # 3, 5, 7
+			median_kernel_size = 3
 			attacks_list.append(
 				{
 					'function' : median,
@@ -142,7 +139,7 @@ def get_random_attacks(num_attacks):
 				}
 			)
 		elif attack == 6:
-			sigma = [randint(1, 5),randint(1, 5)]
+			sigma = round((random() * (2 - 0.2)) + 0.2,2)
 			attacks_list.append(
 				{
 					'function' : gaussian_blur,

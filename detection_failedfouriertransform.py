@@ -6,12 +6,13 @@ from math import sqrt
 from scipy.fft import dct, idct
 from pywt import dwt2, wavedec2
 import os
+from tools import split
 
 # ////VARIABLES START////
 ALPHA = 55
 DWT_LEVEL = 4
 SUBBANDS = ['LL']
-DETECTION_THRESHOLD = 12.977535618706009
+DETECTION_THRESHOLD = 15.496826790280725
 MARK_SIZE = 32
 
 # ////VARIABLES END////
@@ -58,26 +59,18 @@ def wpsnr(img1: np.ndarray, img2: np.ndarray):
         np.mean(np.mean(ew ** 2))))  # this is something that can be optimized by using numerical values instead of db
     return decibels
 
-
 def extract_from_dct(original_img, watermarked_img, alpha):
-    # Initialize the watermark matrix
+    
+    original_blocks = split(original_img, 4, 4)
+    watermarked_blocks = split(watermarked_img, 4, 4)
+    watermark = np.zeros(MARK_SIZE*MARK_SIZE)
+    for idx,(original_block, watermarked_block) in enumerate(zip(original_blocks, watermarked_blocks)):
+        original_dct_block = dct2d(original_block)
+        watermarked_dct_block = dct2d(watermarked_block)
+        dc_diff = (watermarked_dct_block[0][0] - original_dct_block[0][0]) / alpha
+        watermark[idx] =  dc_diff
 
-    ori_dct = abs(original_img)
-    wat_dct = abs(watermarked_img)
-    locations = np.argsort(-ori_dct,axis=None) # - sign is used to get descending order
-    rows = original_img.shape[0]
-    locations = [(val//rows, val%rows) for val in locations][1:] # locations as (x,y) coordinates, skip DC
-
-    # Generate a watermark
-    mark_size = MARK_SIZE * MARK_SIZE
-    w_ex = np.zeros((mark_size), dtype=np.float64)
-
-    # Embed the watermark
-    for idx, loc in enumerate(locations[:mark_size]):
-        w_ex[idx] =  (wat_dct[loc] - ori_dct[loc]) /alpha
-            
-    return w_ex.reshape((MARK_SIZE, MARK_SIZE))
-
+    return watermark.reshape((MARK_SIZE, MARK_SIZE))
 
 def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray, alpha: int, level: int, subbands: list) -> np.ndarray:
     """Extracts the watermark from a watermarked image by appling the reversed embedding algorithm,
@@ -113,9 +106,6 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
         else:
             raise Exception(f"Subband {subband} does not exist")
 
-        original_band = dct2d(original_band)
-        watermarked_band = dct2d(watermarked_band)
-
         watermark = extract_from_dct(original_band, watermarked_band, alpha)
         watermarks.append(watermark)
 
@@ -126,6 +116,8 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
     final_watermark = final_watermark / len(subbands)
 
     return final_watermark
+
+
 
 
 def detection(original_path, watermarked_path, attacked_path):
