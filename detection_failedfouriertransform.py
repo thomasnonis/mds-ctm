@@ -11,7 +11,7 @@ import os
 ALPHA = 55
 DWT_LEVEL = 4
 SUBBANDS = ['LL']
-DETECTION_THRESHOLD = 11.556020171179819
+DETECTION_THRESHOLD = 12.977535618706009
 MARK_SIZE = 32
 
 # ////VARIABLES END////
@@ -61,14 +61,22 @@ def wpsnr(img1: np.ndarray, img2: np.ndarray):
 
 def extract_from_dct(original_img, watermarked_img, alpha):
     # Initialize the watermark matrix
-    watermark = np.zeros([MARK_SIZE, MARK_SIZE], dtype=np.float64)
 
-    # Extract the watermark
-    for i in range(0, MARK_SIZE):
-        for j in range(0, MARK_SIZE):
-            watermark[i][j] = (watermarked_img[i][j] - original_img[i][j]) / alpha
+    ori_dct = abs(original_img)
+    wat_dct = abs(watermarked_img)
+    locations = np.argsort(-ori_dct,axis=None) # - sign is used to get descending order
+    rows = original_img.shape[0]
+    locations = [(val//rows, val%rows) for val in locations][1:] # locations as (x,y) coordinates, skip DC
 
-    return watermark
+    # Generate a watermark
+    mark_size = MARK_SIZE * MARK_SIZE
+    w_ex = np.zeros((mark_size), dtype=np.float64)
+
+    # Embed the watermark
+    for idx, loc in enumerate(locations[:mark_size]):
+        w_ex[idx] =  (wat_dct[loc] - ori_dct[loc]) /alpha
+            
+    return w_ex.reshape((MARK_SIZE, MARK_SIZE))
 
 
 def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray, alpha: int, level: int, subbands: list) -> np.ndarray:

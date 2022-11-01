@@ -59,7 +59,7 @@ def multiproc_embed_watermark(params, order_of_execution):
 
 def main():
 	# Get one random image
-	N_IMAGES_LIMIT = 10
+	N_IMAGES_LIMIT = 3
 	images = import_images(IMG_FOLDER_PATH,N_IMAGES_LIMIT,True)
 
 	# Generate watermark
@@ -74,7 +74,7 @@ def main():
 	print('Welcome to multiprocessing city')
 	print('Embedding...')
 	work = []
-	alpha_range = [25, 50, 75, 100, 150, 250]
+	alpha_range = [10,20,30,40,50]
 	for image in images:
 		original_img, img_name = image
 		for alpha in alpha_range:

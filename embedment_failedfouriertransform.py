@@ -13,14 +13,19 @@ def embed_into_dct(img: np.ndarray, watermark: list, alpha: float) -> tuple:
     Returns:
         tuple: Watermarked image: np.ndarray
     """
-    watermarked = img.copy()
-    # Embed the watermark in the DCT matrix
-    for x in range(0, watermark.shape[0]):
-        for y in range(0, watermark.shape[1]):
-            watermarked[x][y] += alpha * watermark[x][y]
-
+    sign = np.sign(img)
+    ori_dct = abs(img)
+    locations = np.argsort(-ori_dct,axis=None) # - sign is used to get descending order
+    rows = img.shape[0]
+    locations = [(val//rows, val%rows) for val in locations][1:] # locations as (x,y) coordinates, skip DC
     
-    return watermarked
+    watermarked_dct = ori_dct
+    for idx, (loc,mark_val) in enumerate(zip(locations, watermark.flatten())):
+        watermarked_dct[loc] += (alpha * mark_val)
+
+    # Restore sign and o back to spatial domain
+    watermarked_dct *= sign
+    return watermarked_dct
 
 def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, level, subbands: list) -> np.ndarray:
     """Embeds a watermark into the DWT subband after calculating its DCT tranform

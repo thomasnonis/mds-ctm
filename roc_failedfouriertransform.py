@@ -168,9 +168,9 @@ def create_model(params, order_of_execution):
 
 def print_models():
     # Sometimes this crashes because it can not find the file. Don't know why
-    alpha_range = [25, 50, 75, 100, 150, 250]
+    alpha_range = [10,20,30,40,50]
     for alpha in alpha_range:
-        for level in [DWT_LEVEL - 3, DWT_LEVEL - 2, DWT_LEVEL - 1, DWT_LEVEL ]:
+        for level in [DWT_LEVEL - 1, DWT_LEVEL, DWT_LEVEL + 1]:
             for subband in [["LL"], ["HL", "LH"]]:
                 alpha = str(int(alpha))
                 level = str(level)
@@ -183,7 +183,7 @@ def print_models():
                 print((alpha + '_' + level + '_' + subband).ljust(10), tpr, fpr, threshold)
 
 def threshold_computation():
-    images = import_images(IMG_FOLDER_PATH, N_IMAGES_LIMIT, False)
+    images = import_images(IMG_FOLDER_PATH, N_IMAGES_LIMIT, True)
     watermark = np.load("failedfouriertransform.npy").reshape((MARK_SIZE, MARK_SIZE))
     attacks = []
     # 2. In a loop, attack one by one these images (with random attacks or the strategy you prefer)
@@ -192,9 +192,9 @@ def threshold_computation():
             attacks.append(get_random_attacks(randint(MIN_N_ATTACKS, MAX_N_ATTACKS)))
     work = []
     show_threshold = False
-    alpha_range = [25, 50, 75, 100, 150, 250] 
+    alpha_range = [10,20,30,40,50]
     for alpha in alpha_range:
-        for level in [DWT_LEVEL - 3, DWT_LEVEL - 2, DWT_LEVEL - 1, DWT_LEVEL ]:
+        for level in [DWT_LEVEL - 3, DWT_LEVEL - 2, DWT_LEVEL - 1, DWT_LEVEL]:
             for subband in [["LL"], ["HL", "LH"]]:
                 work.append((images, watermark, alpha, level, subband, attacks, show_threshold))
     result = multiprocessed_workload(create_model, work)
