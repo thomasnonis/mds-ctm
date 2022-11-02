@@ -8,10 +8,10 @@ from pywt import dwt2, wavedec2
 import os
 
 # ////VARIABLES START////
-ALPHA = 28
+ALPHA = 21
 DWT_LEVEL = 2
-SUBBANDS = ['HL', 'LH']
-DETECTION_THRESHOLD = 11.41901746103514
+SUBBANDS = ['LL']
+DETECTION_THRESHOLD = 11.448617483794997
 MARK_SIZE = 32
 
 # ////VARIABLES END////
@@ -85,7 +85,6 @@ def extract_watermark(original_img: np.ndarray, watermarked_img: np.ndarray, alp
 
     Args:
         original_img (np.ndarray): Original unwatermarked image
-        img_name (str): Name of the image
         watermarked_img (np.ndarray): Image from which to extract the watermark
         subbands (list): List of subbands where to extract the watermark
 
@@ -129,9 +128,26 @@ def detection(original_path, watermarked_path, attacked_path):
     watermarked_img = cv.imread(watermarked_path, cv.IMREAD_GRAYSCALE)
     attacked_img = cv.imread(attacked_path, cv.IMREAD_GRAYSCALE)
 
+    # Our watermarked images must be named: imageName_failedfouriertransform.bmp
+    # Watermarked images by other groups will be named: groupB_imageName.bmp
+    # Attacked images must be named: failedfouriertransform_groupB_imageName.bmp
+    '''
+    pixel
+    ef26420c
+    you_shall_not_mark
+    blitz
+    omega
+    howimetyourmark
+    weusedlsb
+    thebavarians
+    theyarethesamepicture
+    dinkleberg
+    failedfouriertransform
+    '''
+    
     original_watermark = extract_watermark(original_img, watermarked_img, ALPHA, DWT_LEVEL, SUBBANDS)
     attacked_watermark = extract_watermark(original_img, attacked_img, ALPHA, DWT_LEVEL, SUBBANDS)
-    
+
     if similarity(original_watermark, attacked_watermark) > DETECTION_THRESHOLD:
         has_watermark = True
     else:

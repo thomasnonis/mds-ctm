@@ -59,7 +59,7 @@ def generate_watermark(size_h: int, size_v: int = 0, save: bool = False) -> np.n
     return mark.reshape((size_v, size_h))
 
 
-def compute_thr_multiple_images(images, original_watermark, attacks, alpha, level, subband, show: bool = True):
+def compute_thr_multiple_images(images, original_watermark, attacks, alpha, level, subband, continue_training, show: bool = True):
     scores = []
     labels = []
 
@@ -68,8 +68,9 @@ def compute_thr_multiple_images(images, original_watermark, attacks, alpha, leve
     m = 0
     attack_idx = 0
     model_name = '_'.join([str(alpha),str(level),'-'.join(subband)])
-    if exists_model(model_name):
-        scores, labels, _, _, _ = read_model(model_name)
+    if continue_training:
+        if exists_model(model_name):
+            scores, labels, _, _, _ = read_model(model_name)
 
     n_computations = n_images * RUNS_PER_IMAGE * N_FALSE_WATERMARKS_GENERATIONS
     print('Total number of computations: %d' % n_computations)
@@ -85,7 +86,7 @@ def compute_thr_multiple_images(images, original_watermark, attacks, alpha, leve
                 attacked_img, attacks_list = do_attacks(watermarked_img, attacks[j])
             
             # 3. Extract the watermark with your planned technique Wextracted
-            extracted_watermark = extract_watermark(original_img, img_name, attacked_img, alpha, level, subband)
+            extracted_watermark = extract_watermark(original_img, attacked_img, alpha, level, subband)
             
             # 4. Compute sim(Woriginal,Wextracted) and append it in the scores array and the value 1 in the labels array. These values will correspond to the true positive hypothesis.
             # true positive population
@@ -157,35 +158,33 @@ def create_model(params, order_of_execution):
     from roc_failedfouriertransform import compute_thr_multiple_images
     from embedment_failedfouriertransform import embed_watermark
     watermarked_images = []
-    images, watermark, alpha, level, subband, attacks, show_threshold = params
+    images, watermark, alpha, level, subband, attacks, show_threshold, continue_training = params
     for original_img, img_name in images:
-        watermarked_img = embed_watermark(original_img, img_name, watermark, alpha, level, subband)
+        watermarked_img = embed_watermark(original_img, watermark, alpha, level, subband)
         watermarked_images.append((original_img, watermarked_img, img_name))
 
-    scores, labels, (threshold, tpr, fpr) = compute_thr_multiple_images(watermarked_images, watermark, attacks, alpha, level, subband, show_threshold)
+    scores, labels, (threshold, tpr, fpr) = compute_thr_multiple_images(watermarked_images, watermark, attacks, alpha, level, subband, continue_training, show_threshold)
     
-    # We should do this only once, when we know what the good parameters are, or remove it entirely
-    update_parameters('detection_failedfouriertransform.py', ALPHA = alpha, DWT_LEVEL = level, SUBBANDS = subband, DETECTION_THRESHOLD = threshold, MARK_SIZE = MARK_SIZE)
     
     save_model(scores, labels, threshold, tpr, fpr, alpha, level, subband)
     return order_of_execution, threshold, tpr, fpr, alpha,level,subband
 
 def print_models():
     # Sometimes this crashes because it can not find the file. Don't know why
-    for alpha in range(20, 25, 1):
-        for level in [2]:
-            for subband in [SUBBANDS]: # , ["HL", "LH"]
-                alpha = str(int(alpha))
-                level = str(level)
-                subband = "-".join(subband)
-                (scores, labels, threshold, tpr, fpr) = read_model(alpha + '_' + level + '_' + subband)
-                tpr = round(tpr,2)
-                fpr = round(fpr,2)
-                threshold = round(threshold,2)
+    for alpha in range(18,25):
+            for level in [2]:
+                for subband in [["LL"]]:
+                    alpha = str(int(alpha))
+                    level = str(level)
+                    subband = "-".join(subband)
+                    (scores, labels, threshold, tpr, fpr) = read_model(alpha + '_' + level + '_' + subband)
+                    tpr = round(tpr,2)
+                    fpr = round(fpr,2)
+                    threshold = round(threshold,2)
 
-                print((alpha + '_' + level + '_' + subband).ljust(10), tpr, fpr, threshold)
+                    print((alpha + '_' + level + '_' + subband).ljust(10), tpr, fpr, threshold)
 
-def threshold_computation():
+def threshold_computation(continue_training):
     images = import_images(IMG_FOLDER_PATH, N_IMAGES_LIMIT, True)
     watermark = np.load("failedfouriertransform.npy").reshape((MARK_SIZE, MARK_SIZE))
     attacks = []
@@ -195,13 +194,17 @@ def threshold_computation():
             attacks.append(get_random_attacks(randint(MIN_N_ATTACKS, MAX_N_ATTACKS)))
     work = []
     show_threshold = True
-    for alpha in range(20, 25, 1):
+    for alpha in range(18, 25):
         for level in [2]:
-            for subband in [SUBBANDS]: # , ["HL", "LH"]
-                work.append((images, watermark, alpha, level, subband, attacks, show_threshold))
+            for subband in [["LL"]]:
+                work.append((images, watermark, alpha, level, subband, attacks, show_threshold, continue_training))
     result = multiprocessed_workload(create_model, work)
     print(result)
 
 if __name__ == '__main__':
-    threshold_computation()
+    continue_training = input("Vuoi tu continuare il training di vecchi modelli [Y/n]?\n >")
+    if continue_training == "Y":
+        threshold_computation(True)
+    else:
+        threshold_computation(False)
     print_models()

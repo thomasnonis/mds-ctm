@@ -9,11 +9,11 @@ from embedment_failedfouriertransform import embed_watermark
 from roc_failedfouriertransform import read_model
 
 def evaluate_model(params, order_of_execution):
-	original_img, img_name, watermarked_image_name, watermark, attacks, watermarked_image, alpha, level, subband = params
+	original_img, watermarked_image_name, watermark, attacks, watermarked_image, alpha, level, subband = params
 	
 	model_name = '_'.join(watermarked_image_name.split('_')[1:])
 	print(model_name)
-	_, _, threshold, _, _ = read_model(model_name)
+	_, _, threshold, tpr, _ = read_model(model_name)
 		
 	successful = 0
 	wpsnr_tot = 0
@@ -24,7 +24,7 @@ def evaluate_model(params, order_of_execution):
 	for attack in attacks:
 		attacked_img, _ = do_attacks(watermarked_image,attack)
 		extracted_watermark = None
-		extracted_watermark = extract_watermark(original_img, img_name, attacked_img, alpha, level, subband)
+		extracted_watermark = extract_watermark(original_img, attacked_img, alpha, level, subband)
 		
 		sim = similarity(watermark, extracted_watermark)
 		_wpsnr = wpsnr(original_img, attacked_img)
@@ -44,13 +44,13 @@ def evaluate_model(params, order_of_execution):
 		score += 6 + 2
 
 	score += wpsnr_to_mark(model_stats['WPSNR Original-Watermarked'])
-	model_stats['Score'] = score
+	model_stats['Score'] = score * tpr
 
 	return order_of_execution, model_name, model_stats
 
 def multiproc_embed_watermark(params, order_of_execution):
 	original_img, img_name, watermark, alpha, level, subband = params
-	watermarked_img = embed_watermark(original_img, img_name, watermark, alpha, level, subband)
+	watermarked_img = embed_watermark(original_img, watermark, alpha, level, subband)
 	
 	return order_of_execution, original_img, img_name, alpha, level, subband, watermarked_img
 
@@ -72,9 +72,9 @@ def main():
 	work = []
 	for image in images:
 		original_img, img_name = image
-		for alpha in range(10,30,2):
+		for alpha in range(18,25,1):
 			for level in [2]:
-				for subband in [["LL"], ["HL", "LH"]]:
+				for subband in [["LL"],["LL","LH"]]:
 						work.append((original_img, img_name, watermark, alpha, level, subband))
 	
 	results = multiprocessed_workload(multiproc_embed_watermark,work)
@@ -90,7 +90,7 @@ def main():
 
 	for watermarked_image_name in watermarked_images:
 		original_img, img_name, watermarked_image, alpha, level, subband  = watermarked_images[watermarked_image_name]
-		work.append((original_img, img_name, watermarked_image_name, watermark, attacks, watermarked_image, alpha, level, subband))
+		work.append((original_img, watermarked_image_name, watermark, attacks, watermarked_image, alpha, level, subband))
 	
 	results = multiprocessed_workload(evaluate_model,work)
 	all_models = {}
@@ -116,6 +116,13 @@ def main():
 	lst_models.sort(key=lambda x: x[1]['AVG Score'], reverse=True)
 	for model_name, model in lst_models:
 		print(model_name.ljust(10), model)
+	
+	best_model_name, _ = lst_models[0]
+	_, _, threshold, _, _ = read_model(best_model_name)
+	alpha, level, subband = best_model_name.split('_')
+	subband = subband.split('-')
+	update_parameters('detection_failedfouriertransform.py', ALPHA = alpha, DWT_LEVEL = level, SUBBANDS = subband, DETECTION_THRESHOLD = threshold, MARK_SIZE = MARK_SIZE)
+    
 
 if __name__ == '__main__':
 	st = time()

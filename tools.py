@@ -247,8 +247,7 @@ def update_parameters(filename, **kwargs):
 
     string = ''
     for key in kwargs.keys():
-        if type(kwargs[key]) != dict:
-            string += key + ' = ' + str(kwargs[key]) + '\n'
+        string += key + ' = ' + str(kwargs[key]) + '\n'
 
     if start_line == -1 or end_line == -1:
         start_line = 0
