@@ -144,16 +144,7 @@ def import_images(img_folder_path: str, num_images: int, shuffle: bool = False) 
 
     return images
 
-# Split function
-def split(array, nrows, ncols):
-    """Split a matrix into sub-matrices."""
-
-    r, h = array.shape
-    return (array.reshape(h//nrows, nrows, -1, ncols)
-                 .swapaxes(1, 2)
-                 .reshape(-1, nrows, ncols))
-
-def unsplit(submatricies, out_n_rows, out_n_cols):
+def merge(submatricies, out_n_rows, out_n_cols):
     out = np.zeros((out_n_rows,out_n_cols))
     i = 0
     j = 0

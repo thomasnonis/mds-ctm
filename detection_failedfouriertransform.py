@@ -6,7 +6,6 @@ from math import sqrt
 from scipy.fft import dct, idct
 from pywt import dwt2, wavedec2
 import os
-from tools import split
 
 # ////VARIABLES START////
 ALPHA = 28
@@ -59,6 +58,14 @@ def wpsnr(img1: np.ndarray, img2: np.ndarray):
         np.mean(np.mean(ew ** 2))))  # this is something that can be optimized by using numerical values instead of db
     return decibels
 
+def split(array, nrows, ncols):
+    """Split a matrix into sub-matrices."""
+
+    r, h = array.shape
+    return (array.reshape(h//nrows, nrows, -1, ncols)
+                 .swapaxes(1, 2)
+                 .reshape(-1, nrows, ncols))
+
 def extract_from_dct(original_img, watermarked_img, alpha):
     
     original_blocks = split(original_img, 4, 4)
@@ -72,7 +79,7 @@ def extract_from_dct(original_img, watermarked_img, alpha):
 
     return watermark.reshape((MARK_SIZE, MARK_SIZE))
 
-def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: np.ndarray, alpha: int, level: int, subbands: list) -> np.ndarray:
+def extract_watermark(original_img: np.ndarray, watermarked_img: np.ndarray, alpha: int, level: int, subbands: list) -> np.ndarray:
     """Extracts the watermark from a watermarked image by appling the reversed embedding algorithm,
     provided that the proper configuration file and the original, unwatermarked, image are available.
 
@@ -117,37 +124,13 @@ def extract_watermark(original_img: np.ndarray, img_name: str, watermarked_img: 
 
     return final_watermark
 
-
-
-
 def detection(original_path, watermarked_path, attacked_path):
     original_img = cv.imread(original_path, cv.IMREAD_GRAYSCALE)
     watermarked_img = cv.imread(watermarked_path, cv.IMREAD_GRAYSCALE)
     attacked_img = cv.imread(attacked_path, cv.IMREAD_GRAYSCALE)
 
-    # Our watermarked images must be named: imageName_failedfouriertransform.bmp
-    # Watermarked images by other groups will be named: groupB_imageName.bmp
-    # Attacked images must be named: failedfouriertransform_groupB_imageName.bmp
-    '''
-    pixel
-    ef26420c
-    you_shall_not_mark
-    blitz
-    omega
-    howimetyourmark
-    weusedlsb
-    thebavarians
-    theyarethesamepicture
-    dinkleberg
-    failedfouriertransform
-    '''
-
-    if watermarked_path.lower().split('/')[-1].split('_')[-1].split('.')[0] == TEAM_NAME:
-        img_name = watermarked_path.lower().split('/')[-1].split('_')[0]
-    else:
-        img_name = watermarked_path.lower().split('/')[-1].split('.')[-2].split('_')[-1]
-    original_watermark = extract_watermark(original_img, img_name, watermarked_img, ALPHA, DWT_LEVEL, SUBBANDS)
-    attacked_watermark = extract_watermark(original_img, img_name, attacked_img, ALPHA, DWT_LEVEL, SUBBANDS)
+    original_watermark = extract_watermark(original_img, watermarked_img, ALPHA, DWT_LEVEL, SUBBANDS)
+    attacked_watermark = extract_watermark(original_img, attacked_img, ALPHA, DWT_LEVEL, SUBBANDS)
     
     if similarity(original_watermark, attacked_watermark) > DETECTION_THRESHOLD:
         has_watermark = True

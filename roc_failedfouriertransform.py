@@ -8,7 +8,7 @@ from config import *
 from attacks import *
 from tools import import_images, multiprocessed_workload, update_parameters
 
-from detection_failedfouriertransform import similarity, extract_watermark, wpsnr
+from detection_failedfouriertransform import DWT_LEVEL, similarity, extract_watermark, wpsnr
 from embedment_failedfouriertransform import embed_watermark
 
 def compute_ROC(scores, labels, alpha, show: bool = True):
@@ -80,9 +80,9 @@ def compute_thr_multiple_images(images, original_watermark, attacks, alpha, leve
             attacked_img, attacks_list = do_attacks(watermarked_img, attacks[j])
             
             while wpsnr(original_img, attacked_img) < 35:
-                print("Retry", attacks_list, "was too powerful")
-                attack = get_random_attacks(randint(MIN_N_ATTACKS, MAX_N_ATTACKS))
-                attacked_img, attacks_list = do_attacks(watermarked_img, attack)
+                # print("Retry", attacks_list, "was too powerful")
+                attacks[j] = get_random_attacks(randint(MIN_N_ATTACKS, MAX_N_ATTACKS))
+                attacked_img, attacks_list = do_attacks(watermarked_img, attacks[j])
             
             # 3. Extract the watermark with your planned technique Wextracted
             extracted_watermark = extract_watermark(original_img, img_name, attacked_img, alpha, level, subband)
@@ -172,9 +172,9 @@ def create_model(params, order_of_execution):
 
 def print_models():
     # Sometimes this crashes because it can not find the file. Don't know why
-    for alpha in range(10,30,2):
+    for alpha in range(20, 25, 1):
         for level in [2]:
-            for subband in [["LL"] , ["HL", "LH"]]:
+            for subband in [SUBBANDS]: # , ["HL", "LH"]
                 alpha = str(int(alpha))
                 level = str(level)
                 subband = "-".join(subband)
@@ -194,10 +194,10 @@ def threshold_computation():
         for _ in range(0, RUNS_PER_IMAGE):
             attacks.append(get_random_attacks(randint(MIN_N_ATTACKS, MAX_N_ATTACKS)))
     work = []
-    show_threshold = False
-    for alpha in range(10,30,2):
+    show_threshold = True
+    for alpha in range(20, 25, 1):
         for level in [2]:
-            for subband in [["LL"], ["HL", "LH"]]:
+            for subband in [SUBBANDS]: # , ["HL", "LH"]
                 work.append((images, watermark, alpha, level, subband, attacks, show_threshold))
     result = multiprocessed_workload(create_model, work)
     print(result)
