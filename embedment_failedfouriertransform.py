@@ -1,5 +1,7 @@
 import numpy as np
-from tools import wavedec2d, waverec2d, dct2d, idct2d, unsplit, split
+import cv2 as cv
+from tools import wavedec2d, waverec2d, dct2d, idct2d, merge
+from detection_failedfouriertransform import split, ALPHA, DWT_LEVEL, SUBBANDS, MARK_SIZE
 
 
 def embed_into_dct(img: np.ndarray, watermark: list, alpha: float) -> tuple:
@@ -23,10 +25,10 @@ def embed_into_dct(img: np.ndarray, watermark: list, alpha: float) -> tuple:
         block = idct2d(dct_block)
         output[idx] = block  
 
-    watermarked = unsplit(output, img.shape[0], img.shape[1])
+    watermarked = merge(output, img.shape[0], img.shape[1])
     return watermarked
-    
-def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarray, alpha: float, level, subbands: list) -> np.ndarray:
+
+def embed_watermark(original_img: np.ndarray, watermark: np.ndarray, alpha: float, level, subbands: list) -> np.ndarray:
     """Embeds a watermark into the DWT subband after calculating its DCT tranform
 
     Args:
