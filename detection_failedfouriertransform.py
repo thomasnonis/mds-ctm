@@ -127,23 +127,6 @@ def detection(original_path, watermarked_path, attacked_path):
     original_img = cv.imread(original_path, cv.IMREAD_GRAYSCALE)
     watermarked_img = cv.imread(watermarked_path, cv.IMREAD_GRAYSCALE)
     attacked_img = cv.imread(attacked_path, cv.IMREAD_GRAYSCALE)
-
-    # Our watermarked images must be named: imageName_failedfouriertransform.bmp
-    # Watermarked images by other groups will be named: groupB_imageName.bmp
-    # Attacked images must be named: failedfouriertransform_groupB_imageName.bmp
-    '''
-    pixel
-    ef26420c
-    you_shall_not_mark
-    blitz
-    omega
-    howimetyourmark
-    weusedlsb
-    thebavarians
-    theyarethesamepicture
-    dinkleberg
-    failedfouriertransform
-    '''
     
     original_watermark = extract_watermark(original_img, watermarked_img, ALPHA, DWT_LEVEL, SUBBANDS)
     attacked_watermark = extract_watermark(original_img, attacked_img, ALPHA, DWT_LEVEL, SUBBANDS)
