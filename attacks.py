@@ -62,12 +62,15 @@ def jpeg_compression(img, QF):
 def get_random_attacks(num_attacks):
 	attacks_list = []
 
-	# TODO: randomize parameters in a meaningful way
 	for _ in range(0, num_attacks):
 		attack = randint(0, N_AVAILABLE_ATTACKS - 1)
+		# Ignore resize for the moment, as it destroys the wpsnr
+		while attack == 4:
+			attack = randint(0, N_AVAILABLE_ATTACKS - 1)
+
 		if attack == 0:
-			awgn_mean = randint(-5, 5)
-			awgn_std_dev = round((random() * (5 - 0.2)) + 0.2, 2)
+			awgn_mean = 0
+			awgn_std_dev = randint(1, 10) * 5 # 5, 10, 15, 20, 25, 30, 35, 40, 45
 			awgn_seed = randint(0, 1000)
 			attacks_list.append(
 				{
@@ -81,7 +84,7 @@ def get_random_attacks(num_attacks):
 				}
 			)
 		elif attack == 1:
-			avg_blur_kernel_size = (randint(1, 2) * 2) + 1 # 3, 5
+			avg_blur_kernel_size = (randint(1, 3) * 2) + 1 # 3, 5, 7
 			attacks_list.append(
 				{
 					'function' : average_blur,
@@ -92,6 +95,7 @@ def get_random_attacks(num_attacks):
 				}
 			)
 		elif attack == 2:
+			# TODO: fix ranges
 			sharpen_sigma = round((random() * (5 - 0.2)) + 0.2, 2)
 			sharpen_alpha = round(random() * (5 - 0.1) + 0.1, 2)
 
@@ -106,7 +110,8 @@ def get_random_attacks(num_attacks):
 				}
 			)
 		elif attack == 3:
-			jpeg_quality_factor = randint(3, 10) * 10 # 10, 20, ..., 100
+			qf = [1, 2, 3, 4, 5, 7, 9, 11, 13, 16, 19, 22, 25, 30, 35, 40, 50, 60, 65, 70, 75, 80, 82, 84, 86, 88, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100] # distribution optimized for wpsnr impact
+			jpeg_quality_factor = qf[randint(0, 36)] # len(qf) = 37
 			attacks_list.append(
 				{
 					'function' : jpeg_compression,
@@ -117,7 +122,8 @@ def get_random_attacks(num_attacks):
 				}
 			)
 		elif attack == 4:
-			resize_scale = randint(5, 9) / 10 # 0.1, 0.2, ..., 0.9
+			# TODO: destroys wpsnr regardless of scale, check this!!
+			resize_scale = round(randint(1, 9) / 10, 1) # 0.1, 0.2, ..., 0.9
 			attacks_list.append(
 				{
 					'function' : resize,
@@ -128,7 +134,7 @@ def get_random_attacks(num_attacks):
 				}
 			)
 		elif attack == 5:
-			median_kernel_size = 3
+			median_kernel_size = randint(1, 3) * 2 + 1 # 3, 5, 7 (5 and 7 are not valid standalone, but may become valid after a sharpen)
 			attacks_list.append(
 				{
 					'function' : median,
@@ -139,7 +145,7 @@ def get_random_attacks(num_attacks):
 				}
 			)
 		elif attack == 6:
-			sigma = round((random() * (2 - 0.2)) + 0.2,2)
+			sigma = round(randint(1, 15) * 2 / 10, 1) # 0.2, 0.4, ..., 3.0
 			attacks_list.append(
 				{
 					'function' : gaussian_blur,
