@@ -43,7 +43,7 @@ def evaluate_model(params, order_of_execution):
 	else:
 		score += 6 + 2
 
-	score = wpsnr_to_mark(model_stats['WPSNR Original-Watermarked'])
+	score += wpsnr_to_mark(model_stats['WPSNR Original-Watermarked'])
 	model_stats['Score'] = score
 
 	return order_of_execution, model_name, model_stats
@@ -55,11 +55,10 @@ def multiproc_embed_watermark(params, order_of_execution):
 	return order_of_execution, original_img, img_name, alpha, level, subband, watermarked_img
 
 def main():
-	# Get one random image
-	N_IMAGES_LIMIT = 3
+	# Get N_IMAGES_LIMIT random images
 	images = import_images(IMG_FOLDER_PATH,N_IMAGES_LIMIT,True)
 
-	# Generate watermark
+	# Read watermark
 	watermark = np.load("failedfouriertransform.npy").reshape((MARK_SIZE, MARK_SIZE))
 	
 	attacks = []
@@ -75,8 +74,8 @@ def main():
 		original_img, img_name = image
 		for alpha in range(10,30,2):
 			for level in [2]:
-				for subband in [["LL"]]: # , ["HL", "LH"]
-					work.append((original_img, img_name, watermark, alpha, level, subband))
+				for subband in [["LL"], ["HL", "LH"]]:
+						work.append((original_img, img_name, watermark, alpha, level, subband))
 	
 	results = multiprocessed_workload(multiproc_embed_watermark,work)
 
@@ -94,42 +93,29 @@ def main():
 		work.append((original_img, img_name, watermarked_image_name, watermark, attacks, watermarked_image, alpha, level, subband))
 	
 	results = multiprocessed_workload(evaluate_model,work)
-	print(results)
-	max_score = 0
-	best_technique = ''
-
 	all_models = {}
+	# Merge results from models on N_IMAGES_LIMIT different images
+	# Let's say we've run model x on two different images, we want to know the average WPSNR that image had with certain embedding method
+	# For example the average how many attacks the image with the watermark embedded a certain way did survive and so on
 	for model in results:
 		model_name, model = model
 		if model_name in all_models:
-			# all_models[model_name]['WPSNR Original-Watermarked'] += (model['WPSNR Original-Watermarked'] / N_IMAGES_LIMIT)
-			# all_models[model_name]['AVG WPSNR Succesful Attacks'] += (model['AVG WPSNR Succesful Attacks'] / N_IMAGES_LIMIT)
-			# all_models[model_name]['AVG SIM Succesful Attacks'] += (model['AVG SIM Succesful Attacks'] / N_IMAGES_LIMIT)
-			all_models[model_name]['Score'] += model['Score']
-			all_models[model_name]['Succesful Attacks'] += model['Succesful Attacks']
-			all_models[model_name]['Unsuccesful Attacks'] += model['Unsuccesful Attacks']
+			all_models[model_name]['AVG WPSNR Original-Watermarked'] += round((model['WPSNR Original-Watermarked'] / N_IMAGES_LIMIT),2)
+			all_models[model_name]['AVG Score'] += round((model['Score'] / N_IMAGES_LIMIT),2)
+			all_models[model_name]['AVG Succesful Attacks'] += round((model['Succesful Attacks'] / N_IMAGES_LIMIT),2)
+			all_models[model_name]['AVG Unsuccesful Attacks'] += round((model['Unsuccesful Attacks'] / N_IMAGES_LIMIT),2)
 		else:
-			# model['WPSNR Original-Watermarked'] /= N_IMAGES_LIMIT   # Average out the WPSNRs for the same model on different images
-			# model['AVG WPSNR Succesful Attacks'] /= N_IMAGES_LIMIT  # Average out the WPSNRs for the same model on different images
-			# model['AVG SIM Succesful Attacks'] /= N_IMAGES_LIMIT    # Average out the SIM for the same model on different images
-			all_models[model_name] = model
-	best_model = {}
-	for model_name in all_models:
-		model = all_models[model_name]
-		if model['Score'] > max_score:
-			best_model = model
-			max_score = model['Score']
-			best_technique = model_name
-	print("="*10)
-	print(all_models)
-	
-	
-	print('Best technique was',best_technique, 'with a score of', best_model['Score'] )
-	print(best_model)
-	for image in images:
-		original_img, img_name = image
-		_, _, watermarked_img, _, _, _ = watermarked_images[img_name + '_' + best_technique]
-		cv2.imwrite(img_name + '_' + best_technique + '.bmp', watermarked_img)
+			new_model = {}
+			new_model['AVG WPSNR Original-Watermarked'] = round((model['WPSNR Original-Watermarked'] / N_IMAGES_LIMIT),2)
+			new_model['AVG Score'] = round((model['Score'] / N_IMAGES_LIMIT),2)
+			new_model['AVG Succesful Attacks'] = round((model['Succesful Attacks'] / N_IMAGES_LIMIT),2)
+			new_model['AVG Unsuccesful Attacks'] = round((model['Unsuccesful Attacks'] / N_IMAGES_LIMIT),2)
+			all_models[model_name] = new_model
+	print("Models sorted by score:")
+	lst_models = [(model_name, all_models[model_name]) for model_name in all_models]
+	lst_models.sort(key=lambda x: x[1]['AVG Score'], reverse=True)
+	for model_name, model in lst_models:
+		print(model_name.ljust(10), model)
 
 if __name__ == '__main__':
 	st = time()
