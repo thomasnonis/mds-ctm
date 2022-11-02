@@ -8,10 +8,10 @@ from pywt import dwt2, wavedec2
 import os
 
 # ////VARIABLES START////
-ALPHA = 21
+ALPHA = 22
 DWT_LEVEL = 2
 SUBBANDS = ['LL']
-DETECTION_THRESHOLD = 11.448617483794997
+DETECTION_THRESHOLD = 11.194838072206561
 MARK_SIZE = 32
 
 # ////VARIABLES END////
@@ -132,8 +132,8 @@ def detection(original_path, watermarked_path, attacked_path):
     attacked_watermark = extract_watermark(original_img, attacked_img, ALPHA, DWT_LEVEL, SUBBANDS)
 
     if similarity(original_watermark, attacked_watermark) > DETECTION_THRESHOLD:
-        has_watermark = True
+        has_watermark = 1
     else:
-        has_watermark = False
+        has_watermark = 0
 
-    return has_watermark, wpsnr(original_img, attacked_img)
+    return has_watermark, wpsnr(watermarked_img, attacked_img)
