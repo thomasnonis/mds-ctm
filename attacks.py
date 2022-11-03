@@ -31,42 +31,41 @@ def sharpen(img, sigma, alpha):
 def median(img, kernel_size):
 	return medfilt2d(img, kernel_size)
 
-def resize(img, scale):
-	x, y = img.shape
-	attacked = rescale(img, scale)
-	attacked = skimage_resize(attacked, (x,y))
-	attacked = attacked[:x, :y]
-	return attacked
+def resizing(img, scale):
+  x, y = img.shape
+  _x = int(x*scale)
+  _y = int(y*scale)
 
-def awgn(img, mean, std, seed):
+  attacked = cv2.resize(img, (_x, _y))
+  attacked = cv2.resize(attacked, (x, y))
+
+  return attacked
+
+def awgn(img, std, seed):
+	mean = 0.0
 	np.random.seed(seed)
 	attacked = img + np.random.normal(mean, std, img.shape)
 	attacked = np.clip(attacked, 0, 255)
 	return attacked
 
-def jpeg_compression(img, QF):
-	img = Image.fromarray(img)
-	img = img.convert('L')
-	id = str(uuid.uuid1()) + ".jpg"
-	img.save(id,"JPEG", quality=QF)
-	attacked = Image.open(id)
-	attacked = np.asarray(attacked,dtype=np.uint8)
-	while(os.path.exists(id)):
-		try:
-			os.remove(id)
-		except Exception as e:
-			print('Error while deleting file: ' + id)
-	return attacked
 
+def jpeg_compression(img, QF):
+	filename = str(uuid.uuid1()) + ".jpg"
+	cv2.imwrite(filename, img, [int(cv2.IMWRITE_JPEG_QUALITY), QF])
+	attacked = img # Save the original image as attacked, in case of failure we'll return the original img
+	if os.path.exists(filename):
+		attacked = cv2.imread(filename, 0)
+		try:
+			os.remove(filename)
+		except:
+			print(f"Error while trying to remove {filename}") # We'll return the original img
+	return attacked
 
 def get_random_attacks(num_attacks):
 	attacks_list = []
 
 	for _ in range(0, num_attacks):
 		attack = randint(0, N_AVAILABLE_ATTACKS - 1)
-		# Ignore resize for the moment, as it destroys the wpsnr
-		while attack == 4:
-			attack = randint(0, N_AVAILABLE_ATTACKS - 1)
 
 		if attack == 0:
 			awgn_mean = 0
@@ -122,11 +121,10 @@ def get_random_attacks(num_attacks):
 				}
 			)
 		elif attack == 4:
-			# TODO: destroys wpsnr regardless of scale, check this!!
 			resize_scale = round(randint(1, 9) / 10, 1) # 0.1, 0.2, ..., 0.9
 			attacks_list.append(
 				{
-					'function' : resize,
+					'function' : resizing,
 					'arguments' : {
 						"scale" : resize_scale
 					},
