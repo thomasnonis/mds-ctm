@@ -18,6 +18,18 @@ from config import *
 # - Resize
 # - Median
 
+# Reasonable attack parameters 
+# Orderd by most impactful on wpsnr to least impactful
+attack_parameters = {
+	"awgn" : [45, 40, 35, 30, 25, 20, 15, 10, 5],
+	"average_blur" : [7, 5, 3],
+	"sharpen" : [(0.95, 1.9), (0.9, 1.9), (0.85, 1.9), (0.8, 1.9), (0.75, 1.9), (0.7, 1.9), (0.65, 1.9), (0.95, 1.6), (0.6, 1.9), (0.9, 1.6), (0.85, 1.6), (0.8, 1.6), (0.75, 1.6), (0.55, 1.9), (0.7, 1.6), (0.65, 1.6), (0.6, 1.6), (0.5, 1.9), (0.95, 1.3), (0.9, 1.3), (0.85, 1.3), (0.8, 1.3), (0.55, 1.6), (0.75, 1.3), (0.7, 1.3), (0.65, 1.3), (0.5, 1.6), (0.45, 1.9), (0.6, 1.3), (0.95, 1.0), (0.55, 1.3), (0.9, 1.0), (0.85, 1.0), (0.8, 1.0), (0.75, 1.0), (0.45, 1.6), (0.7, 1.0), (0.5, 1.3), (0.65, 1.0), (0.6, 1.0), (0.55, 1.0), (0.45, 1.3), (0.4, 1.9), (0.95, 0.7), (0.9, 0.7), (0.5, 1.0), (0.85, 0.7), (0.8, 0.7), (0.75, 0.7), (0.7, 0.7), (0.4, 1.6), (0.65, 0.7), (0.6, 0.7), (0.45, 1.0), (0.55, 0.7), (0.4, 1.3), (0.5, 0.7), (0.95, 0.4), (0.45, 0.7), (0.9, 0.4), (0.85, 0.4), (0.4, 1.0), (0.8, 0.4), (0.75, 0.4), (0.7, 0.4), (0.65, 0.4), (0.6, 0.4), (0.55, 0.4), (0.5, 0.4), (0.4, 0.7), (0.35, 1.9), (0.45, 0.4), (0.35, 1.6), (0.35, 1.3), (0.4, 0.4), (0.35, 1.0), (0.95, 0.1), (0.9, 0.1), (0.85, 0.1), (0.8, 0.1), (0.75, 0.1), (0.35, 0.7), (0.7, 0.1), (0.65, 0.1), (0.6, 0.1), (0.55, 0.1), (0.5, 0.1), (0.45, 0.1), (0.35, 0.4), (0.4, 0.1), (0.3, 1.9), (0.3, 1.6), (0.2, 1.9), (0.25, 1.9), (0.3, 1.3), (0.2, 1.6), (0.25, 1.6), (0.3, 1.0), (0.35, 0.1), (0.2, 1.3), (0.25, 1.3), (0.2, 1.0), (0.25, 1.0), (0.3, 0.7), (0.2, 0.7), (0.25, 0.7), (0.3, 0.4), (0.2, 0.4), (0.25, 0.4), (0.3, 0.1), (0.2, 0.1), (0.25, 0.1)],
+	"jpeg_compression" : [1, 2, 3, 4, 5, 7, 9, 11, 13, 16, 19, 22, 25, 30, 35, 40, 50, 60, 65, 70, 75, 80, 82, 84, 86, 88, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100],
+	"resizing" : [0.2, 0.25 ,0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95],
+	"median" : [3, 2.8, 2.6, 2.4, 2.2, 2, 1.8, 1.6, 1.4, 1.2, 1, 0.8, 0.6, 0.4, 0.2, 0.13, 0.3],
+	"gaussian_blur" : [7, 5, 3],
+}
+
 def gaussian_blur(img, sigma):
 	return gaussian_filter(img, sigma)
 
@@ -56,11 +68,10 @@ def sharpen(img, sigma, alpha):
 	blurred = gaussian_filter(img, sigma)
 	return img + alpha * (img - blurred)
 
-def wrapper_sharpen(sigma = -1, alpha = -1, min_sigma = 0.2, max_sigma = 5, min_alpha = 0.1, max_alpha = 5):
+def wrapper_sharpen(sigma = -1, alpha = -1, min_sigma = 0.2, max_sigma = 1, min_alpha = 0.1, max_alpha = 2):
 	'''
 	Sharpen Attack wrapper, returns an attack to be used in do_attacks
 	'''
-	# TODO: fix ranges
 	if sigma == -1:
 		sigma = round((random() * (max_sigma - min_sigma)) + min_sigma, 2)	
 	if alpha == -1:
@@ -103,12 +114,12 @@ def resizing(img, scale):
   return attacked
 
 
-def wrapper_resizing(resize_scale = -1, min_resize_scale = 1, max_resize_scale = 9):
+def wrapper_resizing(resize_scale = -1, min_resize_scale = 2, max_resize_scale = 9):
 	'''
 	Resizing Attack wrapper, returns an attack to be used in do_attacks
 	'''
 	if resize_scale == -1:
-		resize_scale = round(randint(min_resize_scale, max_resize_scale) / 10, 1) # 0.1, 0.2, ..., 0.9
+		resize_scale = round(randint(min_resize_scale, max_resize_scale) / 10, 1) # 0.2, ..., 0.9
 	return {
 		'function' : resizing,
 		'arguments' : {
