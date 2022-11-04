@@ -93,6 +93,21 @@ def show_images(list_of_images: list, rows: int, columns: int, show: bool = True
     if show is True:
         plt.show()
 
+def save_image(img, img_name, type: str, groupname: str = None):
+    if type == 'watermarked':
+        # Our watermarked images must be named: imageName_failedfouriertransform.bmp
+        path = IMG_FOLDER_PATH + 'watermarked/'
+        filename = img_name + '_failedfouriertransform.bmp'
+    elif type == 'attacked':
+        # Attacked images must be named: failedfouriertransform_groupB_imageName.bmp
+        if groupname == None:
+            raise Exception("Groupname must be specified for attacked images")
+        path = IMG_FOLDER_PATH + 'attacked/'
+        filename = 'failedfouriertransform_' + groupname + '_' + img_name + '.bmp'
+    if not os.path.isdir(path):
+        os.mkdir(path)
+    cv2.imwrite(path + filename, img)
+
 def save_parameters(img_name: str, svd_key: tuple) -> None:
     """Saves the necessary parameters for the detection into parameters/<img_name>_parameters.txt
 

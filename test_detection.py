@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 
 if __name__ == '__main__':
-    images = import_images(IMG_FOLDER_PATH,N_IMAGES_LIMIT,True)
+    images = import_images(IMG_FOLDER_PATH + 'to-watermark/',N_IMAGES_LIMIT,True)
     watermark = np.load("failedfouriertransform.npy").reshape((MARK_SIZE, MARK_SIZE))
     
     TEAM_NAME = 'failedfouriertransform'

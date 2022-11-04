@@ -170,7 +170,7 @@ def embed_watermark(original_img: np.ndarray, img_name: str, watermark: np.ndarr
 
 from config import *
 from tools import show_images
-images = import_images(IMG_FOLDER_PATH, 1, False)
+images = import_images(IMG_FOLDER_PATH + 'to-watermark/', 1, False)
 watermark = np.load("failedfouriertransform.npy").reshape((MARK_SIZE, MARK_SIZE))
 
 original_img, img_name = images[0]
