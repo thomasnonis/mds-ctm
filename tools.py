@@ -96,13 +96,13 @@ def show_images(list_of_images: list, rows: int, columns: int, show: bool = True
 def save_image(img, img_name, type: str, groupname: str = None):
     if type == 'watermarked':
         # Our watermarked images must be named: imageName_failedfouriertransform.bmp
-        path = IMG_FOLDER_PATH + 'watermarked/'
+        path = IMG_FOLDER_PATH + 'failedfouriertransform/' + 'watermarked/'
         filename = img_name + '_failedfouriertransform.bmp'
     elif type == 'attacked':
         # Attacked images must be named: failedfouriertransform_groupB_imageName.bmp
         if groupname == None:
             raise Exception("Groupname must be specified for attacked images")
-        path = IMG_FOLDER_PATH + 'attacked/'
+        path = IMG_FOLDER_PATH + groupname + '/' + 'attacked/'
         filename = 'failedfouriertransform_' + groupname + '_' + img_name + '.bmp'
     if not os.path.isdir(path):
         os.mkdir(path)
