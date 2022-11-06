@@ -282,3 +282,36 @@ def update_parameters(filename, **kwargs):
     random_dict['lena'] = (np.ones((5,5)), np.zeros((5,5)))
     update_parameters('detection_failedfouriertransform.py', random_dict, ALPHA=23, BETA=0.2, DETECTION_THRESHOLD=12, MARK_SIZE=32, DWT_LEVEL=2)
     '''
+
+def log_attacks(type: str, attacks_list, parameters: list, wpsnr: int, success: bool):
+
+    if type == "new":
+        file = open('attacks.csv', 'w+')
+        file.write("Attacks;Parameters;WPSNR;Success")
+        file.close()
+
+    file = open('attacks.csv', 'a+')
+    string = "\n"
+
+    for attack in (attacks_list):
+        if attacks_list.index(attack) != len(attacks_list) - 1:
+            string += attack + "+"
+        else:
+            string += attack + ";"
+
+    for name, value in parameters:
+        if parameters.index((name, value)) != len(parameters) - 1:
+            string += name + ": " + str(value) + "&"
+        else:
+            string += name + ": " + str(value) + ";"
+
+    string += str(wpsnr) + ";"
+
+    if success:
+        string += "true"
+    else:
+        string += "false"
+
+    file.write(string)
+    file.close()
+    return
