@@ -23,8 +23,8 @@ import cv2
 groups = ['pixel', 'ef26420c', 'youshallnotmark', 'blitz', 'omega', 'howimetyourmark', 'weusedlsb', 'thebavarians', 'theyarethesamepicture', 'dinkleberg']
 
 # watermarked images (downloaded from the website) naming convention: groupB_imageName.bmp
-def retrieve_watermarked_images(groupName: str, img_folder: str):
-    path = img_folder + groupName + '/' + 'watermarked/'
+def retrieve_others_images(groupName: str, img_folder: str, typ: str):
+    path = img_folder + groupName + '/' + typ +  '/'
 
     if not os.path.isdir(path):
         exit('Error: Images folder not found')
@@ -32,9 +32,11 @@ def retrieve_watermarked_images(groupName: str, img_folder: str):
     images_name = os.listdir(path)
     images = []
     for img_name in images_name:
-        images.append((cv2.imread(path + img_name, cv2.IMREAD_GRAYSCALE), img_name.split('.')[-2]))
+        images.append((cv2.imread(path + img_name, cv2.IMREAD_GRAYSCALE), path + img_name))
 
     return images
+
+
 
 
 """

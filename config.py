@@ -14,3 +14,4 @@ IMG_ATTACKED_FOLDER_PATH = 'images/attacked/'
 MAX_WORKERS = 6
 MARK_SIZE = 32
 SUBBANDS = ["LL"]
+TEAM_NAME = 'failedfouriertransform'
