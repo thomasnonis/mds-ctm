@@ -18,6 +18,8 @@ from config import *
 # - Resize
 # - Median
 
+# Naming convention for images attacked by us: failedfouriertransform_groupB_imageName.bmp
+
 # Reasonable attack parameters 
 # Orderd by most impactful on wpsnr to least impactful
 attack_parameters = {

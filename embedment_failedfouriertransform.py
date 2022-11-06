@@ -27,7 +27,8 @@ def embed_into_dct(img: np.ndarray, watermark: list, alpha: float) -> tuple:
 
     watermarked = merge(output, img.shape[0], img.shape[1])
     return watermarked
-    
+
+# embedded images naming convention: imageName_groupA.bmp
 def embed_watermark(original_img: np.ndarray, watermark: np.ndarray, alpha: float, level, subbands: list) -> np.ndarray:
     """Embeds a watermark into the DWT subband after calculating its DCT tranform
 

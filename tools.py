@@ -96,13 +96,13 @@ def show_images(list_of_images: list, rows: int, columns: int, show: bool = True
 def save_image(img, img_name, type: str, groupname: str = None):
     if type == 'watermarked':
         # Our watermarked images must be named: imageName_failedfouriertransform.bmp
-        path = IMG_FOLDER_PATH + 'watermarked/'
+        path = IMG_FOLDER_PATH + 'failedfouriertransform/' + 'watermarked/'
         filename = img_name + '_failedfouriertransform.bmp'
     elif type == 'attacked':
         # Attacked images must be named: failedfouriertransform_groupB_imageName.bmp
         if groupname == None:
             raise Exception("Groupname must be specified for attacked images")
-        path = IMG_FOLDER_PATH + 'attacked/'
+        path = IMG_FOLDER_PATH + groupname + '/' + 'attacked/'
         filename = 'failedfouriertransform_' + groupname + '_' + img_name + '.bmp'
     if not os.path.isdir(path):
         os.mkdir(path)
@@ -282,3 +282,36 @@ def update_parameters(filename, **kwargs):
     random_dict['lena'] = (np.ones((5,5)), np.zeros((5,5)))
     update_parameters('detection_failedfouriertransform.py', random_dict, ALPHA=23, BETA=0.2, DETECTION_THRESHOLD=12, MARK_SIZE=32, DWT_LEVEL=2)
     '''
+
+def log_attacks(type: str, attacks_list, parameters: list, wpsnr: int, success: bool):
+
+    if type == "new":
+        file = open('attacks.csv', 'w+')
+        file.write("Attacks;Parameters;WPSNR;Success")
+        file.close()
+
+    file = open('attacks.csv', 'a+')
+    string = "\n"
+
+    for attack in (attacks_list):
+        if attacks_list.index(attack) != len(attacks_list) - 1:
+            string += attack + "+"
+        else:
+            string += attack + ";"
+
+    for name, value in parameters:
+        if parameters.index((name, value)) != len(parameters) - 1:
+            string += name + ": " + str(value) + "&"
+        else:
+            string += name + ": " + str(value) + ";"
+
+    string += str(wpsnr) + ";"
+
+    if success:
+        string += "true"
+    else:
+        string += "false"
+
+    file.write(string)
+    file.close()
+    return
