@@ -159,10 +159,13 @@ def jpeg_compression(img, QF):
 	attacked = img # Save the original image as attacked, in case of failure we'll return the original img
 	if os.path.exists(filename):
 		attacked = cv2.imread(filename, 0)
-		try:
-			os.remove(filename)
-		except:
-			print(f"Error while trying to remove {filename}") # We'll return the original img
+		attempts = 10
+		while(os.path.exists(filename)) and attempts > 0:
+			attempts -= 1
+			try:
+				os.remove(filename)
+			except:
+				print(f"Error while trying to remove {filename}") # We'll return the original img
 	return attacked
 
 def wrapper_jpeg_compression(quality_factor = -1, min_quality_factor = 0, max_quality_factor = 36):
