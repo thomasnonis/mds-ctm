@@ -72,9 +72,9 @@ def main():
 	work = []
 	for image in images:
 		original_img, img_name = image
-		for alpha in range(18,25,1):
+		for alpha in range(18,25):
 			for level in [2]:
-				for subband in [["LL"],["LL","LH"]]:
+				for subband in [["LL"]]:
 						work.append((original_img, img_name, watermark, alpha, level, subband))
 	
 	results = multiprocessed_workload(multiproc_embed_watermark,work)
@@ -122,7 +122,14 @@ def main():
 	alpha, level, subband = best_model_name.split('_')
 	subband = subband.split('-')
 	update_parameters('detection_failedfouriertransform.py', ALPHA = alpha, DWT_LEVEL = level, SUBBANDS = subband, DETECTION_THRESHOLD = threshold, MARK_SIZE = MARK_SIZE)
-    
+
+	for image in images:
+		original_img, img_name = image
+		print(img_name, best_model_name)
+		print(watermarked_images[img_name + '_' + best_model_name])
+		_, _, watermarked_img, _, _, _ = watermarked_images[img_name + '_' + best_model_name]
+		save_image(watermarked_img, img_name, "watermarked", TEAM_NAME)
+
 
 if __name__ == '__main__':
 	st = time()
