@@ -1,7 +1,8 @@
 from config import *
 from attacks import *
 from others import *
-from tools import multiprocessed_workload
+from tools import multiprocessed_workload, show_images
+from itertools import combinations
 
 from random import randint, random
 import os
@@ -54,7 +55,7 @@ def reduce_attack_strength(idx, attack_list, index_list, detection_function, ori
 		tmp_attacked_img_path = str(uuid.uuid4()) + ".bmp"
 		cv2.imwrite(tmp_attacked_img_path, attacked_img)
 		has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, tmp_attacked_img_path)
-		print("NEW Attack",attack_description, _wpsnr)
+		# print("NEW Attack",attack_description, _wpsnr)
 		if has_watermark == 0 and _wpsnr > old_wpsnr:
 			min_index = index
 			old_wpsnr = _wpsnr
@@ -76,21 +77,21 @@ def remove_attack(idx, attack_list, index_list, detection_function, original_img
 	# Remove an attack
 	index_list_copy = index_list_copy[:idx] + index_list_copy[idx+1:]
 	attack_list_copy = attack_list_copy[:idx] + attack_list_copy[idx+1:]
-	print(f"Substituting {get_attack_description(attack_list[idx])} with nothing")
+	#print(f"Substituting {get_attack_description(attack_list[idx])} with nothing")
 	
 	attacked_img, attack_description = do_attacks(watermarked_img, attack_list_copy)
 	tmp_attacked_img_path = str(uuid.uuid1()) + ".bmp"
 	cv2.imwrite(tmp_attacked_img_path, attacked_img)
 	has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, tmp_attacked_img_path)
 	
-	print("NEW Attack",attack_description, _wpsnr)
+	# print("NEW Attack",attack_description, _wpsnr)
 	if has_watermark == 0 and _wpsnr > old_wpsnr:
 		attack_list, index_list = attack_list_copy, index_list_copy
 		os.remove(attacked_img_path)
 		os.rename(tmp_attacked_img_path, attacked_img_path)
 	else:
 		os.remove(tmp_attacked_img_path)
-		print("Attempt to do substituion failed!")
+		#print("Attempt to do substituion failed!")
 
 	return attack_list, index_list
 def swap_attack(idx, attack_list, index_list, detection_function, original_img_path, watermarked_img_path, attacked_img_path, old_wpsnr):
@@ -102,8 +103,8 @@ def swap_attack(idx, attack_list, index_list, detection_function, original_img_p
 	new_attack, new_index = get_indexed_random_attacks(1)
 	index_list_copy[idx] = new_index[0]
 	attack_list_copy[idx] = new_attack[0]
-	print(f"Substituting {get_attack_description(attack_list[idx])} with {get_attack_description(attack_list_copy[idx])}")
-	print(f'Trying to reduce {get_attack_description(attack_list_copy[idx])}')
+	#print(f"Substituting {get_attack_description(attack_list[idx])} with {get_attack_description(attack_list_copy[idx])}")
+	#print(f'Trying to reduce {get_attack_description(attack_list_copy[idx])}')
 	attack_list_copy, index_list_copy = reduce_attack_strength(idx,attack_list_copy, index_list_copy, detection_function, original_img_path, watermarked_img_path, attacked_img_path, old_wpsnr)
 	
 	
@@ -111,12 +112,13 @@ def swap_attack(idx, attack_list, index_list, detection_function, original_img_p
 	tmp_attacked_img_path = str(uuid.uuid1()) + ".bmp"
 	cv2.imwrite(tmp_attacked_img_path, attacked_img)
 	has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, tmp_attacked_img_path)
-	print("NEW Attack",attack_description, _wpsnr)
+	#print("NEW Attack",attack_description, _wpsnr)
 	os.remove(tmp_attacked_img_path)
 	if has_watermark == 0 and _wpsnr > old_wpsnr:	
 		attack_list, index_list = attack_list_copy, index_list_copy
 	else:
-		print("Attempt to do substituion failed!")
+		pass
+		#print("Attempt to do substituion failed!")
 	
 	return attack_list, index_list
 
@@ -128,18 +130,18 @@ def mutate_attack(params, order_of_execution):
 		if strategy == 0:
 			# Decrease the strength of an attack in the attack list
 			idx = randint(0,len(attack_list)-1)
-			print(f'Trying to reduce {get_attack_description(attack_list[idx])}')
+			#print(f'Trying to reduce {get_attack_description(attack_list[idx])}')
 			attack_list, index_list = reduce_attack_strength(idx,attack_list, index_list, detection_function, original_img_path, watermarked_img_path, attacked_img_path, _wpsnr)
 		elif strategy == 1:
 			if len(attack_list) > 1:
 				# Swap an attack from the attack list with another attack, or removes it
 				idx = randint(0,len(attack_list)-1)
-				print(f'Trying to remove {get_attack_description(attack_list[idx])}')
+				#print(f'Trying to remove {get_attack_description(attack_list[idx])}')
 				attack_list, index_list = remove_attack(idx,attack_list, index_list, detection_function, original_img_path, watermarked_img_path, attacked_img_path, _wpsnr)
 		elif strategy == 2:
 			# Swap an attack from the attack list with another attack
 			idx = randint(0,len(attack_list)-1)
-			print(f'Trying to swap {get_attack_description(attack_list[idx])}')
+			#print(f'Trying to swap {get_attack_description(attack_list[idx])}')
 			attack_list, index_list = swap_attack(idx,attack_list, index_list, detection_function, original_img_path, watermarked_img_path, attacked_img_path, _wpsnr)
 	
 	watermarked_img = cv2.imread(watermarked_img_path, cv2.IMREAD_GRAYSCALE)
@@ -149,14 +151,120 @@ def mutate_attack(params, order_of_execution):
 	has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, attacked_img_path)
 	print("Has watermark?", has_watermark)
 	print("WPSNR:", _wpsnr)
+
+	
+	
+	locations = localize_attack(original_img_path, watermarked_img_path, attacked_img_path, detection_function)
+	has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, attacked_img_path)
+	
+
 	result = {
 		'Has watermark' : has_watermark,
 		'Attack' : describe_attacks(attack_list),
 		'WPSNR' : _wpsnr,
-		'attacked_img_path': attacked_img_path
+		'attacked_img_path': attacked_img_path,
+		'locations' : locations # AAAAAAAAAAAAAAAAAAAAAAA Rimoovimiiii
 	}
 	return order_of_execution, result
+
+def rect_localize_attack(original_img_path, watermarked_img_path, attacked_img_path, detection_function):
+	attacked_img = cv2.imread(attacked_img_path, cv2.IMREAD_GRAYSCALE)
+	watermarked_img = cv2.imread(watermarked_img_path, cv2.IMREAD_GRAYSCALE)
+	#show_images([(attacked_img, 'attacked'),(watermarked_img, 'watermarked'),(watermarked_img - attacked_img, 'diff')],1,3)
+	min_x = 0
+	max_x = watermarked_img.shape[0]
+	min_y = 0
+	max_y = watermarked_img.shape[1]
+
 	
+	print("Begin reducing x")
+	has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, attacked_img_path)
+	print(has_watermark, _wpsnr)
+	idx_x = (min_x + max_x - 1) // 2
+	while min_x != idx_x:
+		attacked_img = cv2.imread(attacked_img_path, cv2.IMREAD_GRAYSCALE)
+		watermarked_img = cv2.imread(watermarked_img_path, cv2.IMREAD_GRAYSCALE)
+		attacked_img[min_x:idx_x] = watermarked_img[min_x:idx_x]
+		tmp_attacked_img_path = str(uuid.uuid4()) + ".bmp"
+		cv2.imwrite(tmp_attacked_img_path, attacked_img)
+		has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, tmp_attacked_img_path)
+		print(has_watermark, _wpsnr)
+		#show_images([(attacked_img, 'attacked'),(watermarked_img, 'watermarked'),(watermarked_img - attacked_img, 'diff')],1,3)
+		if not has_watermark:
+			os.remove(attacked_img_path)
+			os.rename(tmp_attacked_img_path, attacked_img_path)
+			min_x = idx_x
+		else:
+			os.remove(tmp_attacked_img_path)
+			max_x = idx_x
+		idx_x = (min_x + max_x - 1) // 2
+	
+	attacked_img = cv2.imread(attacked_img_path, cv2.IMREAD_GRAYSCALE)
+	watermarked_img = cv2.imread(watermarked_img_path, cv2.IMREAD_GRAYSCALE)
+	print("Begin reducing y")
+	has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, attacked_img_path)
+	print(has_watermark, _wpsnr)
+	idx_y = (min_y + max_y - 1) // 2
+	while min_y != idx_y:
+		attacked_img = cv2.imread(attacked_img_path, cv2.IMREAD_GRAYSCALE)
+		watermarked_img = cv2.imread(watermarked_img_path, cv2.IMREAD_GRAYSCALE)
+		attacked_img[:,min_y: idx_y] = watermarked_img[:,min_y: idx_y]
+		tmp_attacked_img_path = str(uuid.uuid4()) + ".bmp"
+		cv2.imwrite(tmp_attacked_img_path, attacked_img)
+		has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, tmp_attacked_img_path)
+		print(has_watermark, _wpsnr)
+		#show_images([(attacked_img, 'attacked'),(watermarked_img, 'watermarked'),(watermarked_img - attacked_img, 'diff')],1,3)
+		if not has_watermark:
+			os.remove(attacked_img_path)
+			os.rename(tmp_attacked_img_path, attacked_img_path)
+			min_y = idx_y
+		else:
+			os.remove(tmp_attacked_img_path)
+			max_y = idx_y
+		idx_y = (min_y + max_y - 1) // 2
+
+
+def localize_attack(original_img_path, watermarked_img_path, attacked_img_path, detection_function):
+	attacked_img = cv2.imread(attacked_img_path, cv2.IMREAD_GRAYSCALE)
+	watermarked_img = cv2.imread(watermarked_img_path, cv2.IMREAD_GRAYSCALE)
+	show_images([(attacked_img, 'attacked'),(watermarked_img, 'watermarked'),(watermarked_img - attacked_img, 'diff')],1,3)
+	min = 0
+	max = watermarked_img.shape[0] * watermarked_img.shape[1]
+
+	has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, attacked_img_path)
+	print(has_watermark, _wpsnr)
+	idx = (min + max - 1) // 2
+	best_idx = 0
+	while min != idx:
+		attacked_img = cv2.imread(attacked_img_path, cv2.IMREAD_GRAYSCALE)
+		watermarked_img = cv2.imread(watermarked_img_path, cv2.IMREAD_GRAYSCALE)
+		attacked_img_flatten = attacked_img.flatten()
+		watermarked_img_flatten = watermarked_img.flatten()
+		attacked_img_flatten[min:idx] = watermarked_img_flatten[min:idx]
+		tmp_attacked_img_path = str(uuid.uuid4()) + ".bmp"
+		attacked_img = attacked_img_flatten.reshape((512, 512))
+		cv2.imwrite(tmp_attacked_img_path, attacked_img)
+		has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, tmp_attacked_img_path)
+		print(has_watermark, _wpsnr)
+		#show_images([(attacked_img, 'attacked'),(watermarked_img, 'watermarked'),(watermarked_img - attacked_img, 'diff')],1,3)
+		if not has_watermark:
+			os.remove(attacked_img_path)
+			os.rename(tmp_attacked_img_path, attacked_img_path)
+			min = idx
+			best_idx = idx
+		else:
+			os.remove(tmp_attacked_img_path)
+			max = idx
+		idx = (min + max - 1) // 2
+
+	locations = []
+	for x in range(0,watermarked_img.shape[0]):
+		for y in range(0, watermarked_img.shape[1]):
+			locations.append((x,y))
+	
+	return locations[best_idx:]
+	
+
 def main():
 	'''
 	# Uncomment for competition
@@ -172,8 +280,8 @@ def main():
 
 	'''
 	group = 'failedfouriertransform'
-	watermarked_imgs = retrieve_others_images(group,IMG_FOLDER_PATH, 'watermarked')
-	original_imgs = retrieve_others_images(group,IMG_FOLDER_PATH, 'original')
+	watermarked_imgs = retrieve_others_images(group,IMG_FOLDER_PATH, 'watermarked')[:2]
+	original_imgs = retrieve_others_images(group,IMG_FOLDER_PATH, 'original')[:2]
 	lib_detection = import_others_detection(group)
 	watermarked = []
 	for original_img, watermarked_img in zip(original_imgs,watermarked_imgs):
@@ -198,7 +306,8 @@ def main():
 			if has_watermark == 0 and _wpsnr > 35:
 				print(attack_description,has_watermark, _wpsnr)
 				valid_attacks[original_img_path] = (original_img_path, watermarked_img_path, attacked_img_path,attack_list, index_list, _wpsnr, detection_function)
-
+	
+	
 	results = {}
 	work = []
 	for original_img_path in valid_attacks:
@@ -207,8 +316,11 @@ def main():
 		work.append((original_img_path, watermarked_img_path, attacked_img_path,attack_list, index_list, _wpsnr, detection_function))
 
 	results = multiprocessed_workload(mutate_attack,work)
+	f = open("output.txt", "a")
 	for result in results:
-		print(result[0])
+		print("Wrote" + result[0]['attacked_img_path'])
+		f.write(str(result[0]) + "\n")
+	f.close()
 	
 if __name__ == '__main__':
 	main()

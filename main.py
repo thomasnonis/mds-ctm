@@ -56,7 +56,7 @@ def multiproc_embed_watermark(params, order_of_execution):
 
 def main():
 	# Get N_IMAGES_LIMIT random images
-	images = import_images('images/test/original/',N_IMAGES_LIMIT,True)
+	images = import_images('images/'+TEAM_NAME+'/original/',N_IMAGES_LIMIT,True)
 
 	# Read watermark
 	watermark = np.load("failedfouriertransform.npy").reshape((MARK_SIZE, MARK_SIZE))
