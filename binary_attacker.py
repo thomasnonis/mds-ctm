@@ -6,6 +6,7 @@ from itertools import combinations
 
 from random import randint, random
 import os
+import time
 
 ATTACKS_MUTATIONS = 30
 
@@ -188,6 +189,7 @@ def find_attack(params, order_of_execution):
 	
 
 def main():
+	st = time.time()
 	'''
 	# Uncomment for competition
 	watermarked = []
@@ -201,7 +203,7 @@ def main():
 			watermarked.append((group, original_img_path, watermarked_img_path, lib_detection.detection))
 
 	'''
-	group = 'thebavarians'
+	group = 'ef26420c'
 	watermarked_imgs = retrieve_others_images(group,IMG_FOLDER_PATH, 'watermarked')
 	original_imgs = retrieve_others_images(group,IMG_FOLDER_PATH, 'original')
 	lib_detection = import_others_detection(group)
@@ -225,6 +227,8 @@ def main():
 		print("Wrote " + result[0]['attacked_img_path'])
 		f.write(str(result[0]) + "\n")
 	f.close()
+	et = time.time()
+	print("Attacking took: ",et-st)
 	
 if __name__ == '__main__':
 	main()
