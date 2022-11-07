@@ -14,6 +14,7 @@ import sys
 import multiprocessing
 from scipy.fft import dct, idct
 from pywt import wavedec2, waverec2
+import uuid
 
 def dct2d(img):
 	return dct(dct(img, axis=0, norm='ortho'), axis=1, norm='ortho')
@@ -315,3 +316,44 @@ def log_attacks(type: str, attacks_list, parameters: list, wpsnr: int, success: 
     file.write(string)
     file.close()
     return
+
+def localize_attack(original_img_path, watermarked_img_path, attacked_img_path, detection_function):
+	attacked_img = cv2.imread(attacked_img_path, cv2.IMREAD_GRAYSCALE)
+	watermarked_img = cv2.imread(watermarked_img_path, cv2.IMREAD_GRAYSCALE)
+	#show_images([(attacked_img, 'attacked'),(watermarked_img, 'watermarked'),(watermarked_img - attacked_img, 'diff')],1,3)
+	min = 0
+	max = watermarked_img.shape[0] * watermarked_img.shape[1]
+
+	has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, attacked_img_path)
+	print(has_watermark, _wpsnr)
+	idx = (min + max - 1) // 2
+	best_idx, best_wpsnr = (0,0)
+	while min != idx:
+		attacked_img = cv2.imread(attacked_img_path, cv2.IMREAD_GRAYSCALE)
+		watermarked_img = cv2.imread(watermarked_img_path, cv2.IMREAD_GRAYSCALE)
+		attacked_img_flatten = attacked_img.flatten()
+		watermarked_img_flatten = watermarked_img.flatten()
+		attacked_img_flatten[min:idx] = watermarked_img_flatten[min:idx]
+		tmp_attacked_img_path = str(uuid.uuid4()) + ".bmp"
+		attacked_img = attacked_img_flatten.reshape((512, 512))
+		cv2.imwrite(tmp_attacked_img_path, attacked_img)
+		has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, tmp_attacked_img_path)
+		print(has_watermark, _wpsnr)
+		#show_images([(attacked_img, 'attacked'),(watermarked_img, 'watermarked'),(watermarked_img - attacked_img, 'diff')],1,3)
+		if not has_watermark:
+			os.remove(attacked_img_path)
+			os.rename(tmp_attacked_img_path, attacked_img_path)
+			min = idx
+			best_idx = idx
+			best_wpsnr = _wpsnr
+		else:
+			os.remove(tmp_attacked_img_path)
+			max = idx
+		idx = (min + max - 1) // 2
+
+	locations = []
+	for x in range(0,watermarked_img.shape[0]):
+		for y in range(0, watermarked_img.shape[1]):
+			locations.append((x,y))
+	
+	return locations[best_idx], best_wpsnr
