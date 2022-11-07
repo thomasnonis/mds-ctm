@@ -16,12 +16,12 @@ from tools import show_images
 from config import *
 
 ATTACKED_TEAM_NAME = 'failedfouriertransform'
-ATTACKED_IMG_NAME = 'lena'
+ATTACKED_IMG_NAME = 'buildings'
 
 mod = import_others_detection(ATTACKED_TEAM_NAME)
 
-N_ITERATIONS = 10
-N_PARTICLES = 30
+N_ITERATIONS = 45
+N_PARTICLES = 32
 N_SETS = 1
 N_DIMENSIONS = 15 * N_SETS
 N_PARALLEL_PROCESSES = 12
@@ -228,7 +228,7 @@ def print_results(cost, pos):
 		if pos[6 + offset] > 0.5:
 			print('JPEG {} COMPRESSION QF: '.format(i + 1), int(pos[14 + offset]))
 
-def log_csv(filename, img_name, cost, pos):
+def log_csv(filename, img_name, cost, pos, has_watermark):
 	attacks_string = ''
 	for i in range(N_SETS):
 		offset = i * 15
@@ -254,7 +254,7 @@ def log_csv(filename, img_name, cost, pos):
 			attacks_string += 'JPEG ({}), '.format(int(pos[14 + offset]))
 
 	now = datetime.now()
-	data = [now.strftime('%H:%M:%S'), img_name, 100/cost, attacks_string[:-2]]
+	data = [now.strftime('%H:%M:%S'), img_name, 100/cost, attacks_string[:-2], has_watermark]
 	
 	if os.path.exists(filename):
 		with open(filename, 'a', newline='') as f:
@@ -263,7 +263,7 @@ def log_csv(filename, img_name, cost, pos):
 	else:
 		with open(filename, 'w', newline='') as f:
 			writer = csv.writer(f)
-			writer.writerow(['Time', 'Image', 'WPSNR', 'Attacks'])
+			writer.writerow(['Time', 'Image', 'WPSNR', 'Attacks', 'Has Watermark'])
 			writer.writerow(data)
 
 def run_best_attack(attacked_img, args):
@@ -312,8 +312,18 @@ def run_best_attack(attacked_img, args):
 if __name__ == '__main__':
 	start_time = time.time()
 	original_img_path = 'images/' + ATTACKED_TEAM_NAME + '/original/' + ATTACKED_IMG_NAME + '.bmp'
+
+	# For us
+	# watermarked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/watermarked/' + ATTACKED_IMG_NAME + '_' + ATTACKED_TEAM_NAME + '.bmp'
+
+	# For others
 	watermarked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/watermarked/' + ATTACKED_TEAM_NAME + '_' + ATTACKED_IMG_NAME + '.bmp'
+
 	attacked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/attacked/' + TEAM_NAME + '_' + ATTACKED_TEAM_NAME + '_' + ATTACKED_IMG_NAME + '.bmp'
+
+	# print(original_img_path)
+	# print(watermarked_img_path)
+	# print(attacked_img_path)
 
 	# Set-up hyperparameters
 	#'c1': 0.5, 'c2': 0.3, 'w':0.9
@@ -336,12 +346,10 @@ if __name__ == '__main__':
 	# Perform optimization
 	cost, pos = optimizer.optimize(objective_function, iters=N_ITERATIONS, n_processes=min(multiprocessing.cpu_count(), N_PARALLEL_PROCESSES), verbose=ENABLE_VERBOSE, original_image_path=original_img_path, watermarked_image_path=watermarked_img_path, tmp_folder_path=TMP_FOLDER_PATH)
 
-
-	print_results(cost, pos)
-	log_csv('attacks_log.csv', original_img_path, cost, pos)
-
 	end_time = time.time()
 	
+	print_results(cost, pos)
+
 	print('========== RUNNING BEST ATTACK ==========')
 
 	watermarked_img = cv.imread(watermarked_img_path, cv.IMREAD_GRAYSCALE)
@@ -351,6 +359,8 @@ if __name__ == '__main__':
 	# External detection function
 	has_watermark, wpsnr = mod.detection(original_img_path, watermarked_img_path, attacked_img_path)
 	# has_watermark, wpsnr = detection(original_img_path, watermarked_img_path, attacked_img_path)
+
+	log_csv('attacks_log.csv', original_img_path, cost, pos, has_watermark)
 
 	print('WPSNR: ', wpsnr)
 	print('Has watermark: ', has_watermark)
