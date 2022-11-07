@@ -15,12 +15,13 @@ from detection_failedfouriertransform import detection
 from tools import show_images
 from config import *
 
-ATTACKED_TEAM_NAME = 'failedfouriertransform'
-ATTACKED_IMG_NAME = 'buildings'
+ATTACKED_TEAM_NAME = 'youshallnotmark'
+image_names = ['tree', 'rollercoaster', 'buildings']
+# ATTACKED_IMG_NAME = 'rollercoaster'
 
 mod = import_others_detection(ATTACKED_TEAM_NAME)
 
-N_ITERATIONS = 45
+N_ITERATIONS = 52
 N_PARTICLES = 32
 N_SETS = 1
 N_DIMENSIONS = 15 * N_SETS
@@ -310,16 +311,17 @@ def run_best_attack(attacked_img, args):
 	return attacked_img
 
 if __name__ == '__main__':
+	attacked_img_name = image_names[0]
 	start_time = time.time()
-	original_img_path = 'images/' + ATTACKED_TEAM_NAME + '/original/' + ATTACKED_IMG_NAME + '.bmp'
+	original_img_path = 'images/' + ATTACKED_TEAM_NAME + '/original/' + attacked_img_name + '.bmp'
 
 	# For us
-	# watermarked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/watermarked/' + ATTACKED_IMG_NAME + '_' + ATTACKED_TEAM_NAME + '.bmp'
+	# watermarked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/watermarked/' + attacked_img_name + '_' + ATTACKED_TEAM_NAME + '.bmp'
 
 	# For others
-	watermarked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/watermarked/' + ATTACKED_TEAM_NAME + '_' + ATTACKED_IMG_NAME + '.bmp'
+	watermarked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/watermarked/' + ATTACKED_TEAM_NAME + '_' + attacked_img_name + '.bmp'
 
-	attacked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/attacked/' + TEAM_NAME + '_' + ATTACKED_TEAM_NAME + '_' + ATTACKED_IMG_NAME + '.bmp'
+	attacked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/attacked/' + TEAM_NAME + '_' + ATTACKED_TEAM_NAME + '_' + attacked_img_name + '.bmp'
 
 	# print(original_img_path)
 	# print(watermarked_img_path)
@@ -340,7 +342,7 @@ if __name__ == '__main__':
 	if not os.path.exists(TMP_FOLDER_PATH):
 		os.makedirs(TMP_FOLDER_PATH)
 
-	print('Running optimization with {} iterations, {} particles and {} set{} of attacks'.format(N_ITERATIONS, N_PARTICLES, N_SETS, 's' if N_SETS > 1 else ''))
+	print('Running optimization on [{} - {}] with {} iterations, {} particles and {} set{} of attacks'.format(ATTACKED_TEAM_NAME, attacked_img_name, N_ITERATIONS, N_PARTICLES, N_SETS, 's' if N_SETS > 1 else ''))
 	# Call instance of PSO
 	optimizer = ps.single.GlobalBestPSO(n_particles=N_PARTICLES, dimensions=N_DIMENSIONS, options=options, bounds=bounds)
 	# Perform optimization
@@ -351,19 +353,29 @@ if __name__ == '__main__':
 	print_results(cost, pos)
 
 	print('========== RUNNING BEST ATTACK ==========')
+	for attacked_img_name in image_names:
+		original_img_path = 'images/' + ATTACKED_TEAM_NAME + '/original/' + attacked_img_name + '.bmp'
 
-	watermarked_img = cv.imread(watermarked_img_path, cv.IMREAD_GRAYSCALE)
-	attacked_img = run_best_attack(watermarked_img, pos)
-	cv.imwrite(attacked_img_path, attacked_img)
+		# For us
+		# watermarked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/watermarked/' + attacked_img_name + '_' + ATTACKED_TEAM_NAME + '.bmp'
 
-	# External detection function
-	has_watermark, wpsnr = mod.detection(original_img_path, watermarked_img_path, attacked_img_path)
-	# has_watermark, wpsnr = detection(original_img_path, watermarked_img_path, attacked_img_path)
+		# For others
+		watermarked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/watermarked/' + ATTACKED_TEAM_NAME + '_' + attacked_img_name + '.bmp'
 
-	log_csv('attacks_log.csv', original_img_path, cost, pos, has_watermark)
+		attacked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/attacked/' + TEAM_NAME + '_' + ATTACKED_TEAM_NAME + '_' + attacked_img_name + '.bmp'
 
-	print('WPSNR: ', wpsnr)
-	print('Has watermark: ', has_watermark)
+		watermarked_img = cv.imread(watermarked_img_path, cv.IMREAD_GRAYSCALE)
+		attacked_img = run_best_attack(watermarked_img, pos)
+		cv.imwrite(attacked_img_path, attacked_img)
+
+		# External detection function
+		has_watermark, wpsnr = mod.detection(original_img_path, watermarked_img_path, attacked_img_path)
+		# has_watermark, wpsnr = detection(original_img_path, watermarked_img_path, attacked_img_path)
+
+		log_csv('attacks_log.csv', original_img_path, cost, pos, has_watermark)
+
+		print('WPSNR: ', wpsnr)
+		print('Has watermark: ', has_watermark)
 
 	attempts = 10
 	while(os.path.exists(TMP_FOLDER_PATH)) and attempts > 0:
