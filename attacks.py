@@ -137,7 +137,9 @@ def wrapper_awgn(awgn_std_dev = -1, min_std_dev = 1, max_std_dev = 10):
 
 
 def jpeg_compression(img, QF):
-	filename = str(uuid.uuid1()) + ".jpg"
+	if not os.path.exists(TMP_FOLDER_PATH):
+		os.makedirs(TMP_FOLDER_PATH)
+	filename = TMP_FOLDER_PATH + str(uuid.uuid1()) + ".jpg"
 	cv2.imwrite(filename, img, [int(cv2.IMWRITE_JPEG_QUALITY), QF])
 	attacked = img # Save the original image as attacked, in case of failure we'll return the original img
 	if os.path.exists(filename):
