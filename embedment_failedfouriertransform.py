@@ -70,3 +70,15 @@ def embed_watermark(original_img: np.ndarray, watermark: np.ndarray, alpha: floa
             raise Exception(f"Subband {subband} does not exist")
 
     return waverec2d(coeffs)
+
+from tools import import_images
+from config import TEAM_NAME
+
+if __name__ == "__main__":
+    watermark = np.load('failedfouriertransform.npy')
+    images = import_images('images/' + TEAM_NAME + '/original/', 10, False)
+    for img, img_name in images:
+        watermarked = embed_watermark(img, watermark, ALPHA, DWT_LEVEL, SUBBANDS)
+        cv.imwrite('images/' + TEAM_NAME + '/watermarked/' + img_name + '_' + TEAM_NAME + '.bmp', watermarked)
+    
+    print('Watermarking done')
