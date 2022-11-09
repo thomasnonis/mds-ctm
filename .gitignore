@@ -1,7 +1,6 @@
 **.csv
 .env/
 __pycache__/**
-**.pyc
 encrypted.zip
 mark.npy
 parameters/**
