@@ -17,16 +17,16 @@ from pywt import wavedec2, waverec2
 import uuid
 
 def dct2d(img):
-	return dct(dct(img, axis=0, norm='ortho'), axis=1, norm='ortho')
+    return dct(dct(img, axis=0, norm='ortho'), axis=1, norm='ortho')
 
 def idct2d(img):
-	return idct(idct(img, axis=0, norm='ortho'), axis=1, norm='ortho')
+    return idct(idct(img, axis=0, norm='ortho'), axis=1, norm='ortho')
 
 def wavedec2d(image, level):
-	return wavedec2(image, wavelet='haar', level=level)
+    return wavedec2(image, wavelet='haar', level=level)
 
 def waverec2d(coeffs):
-	return waverec2(coeffs,wavelet='haar')
+    return waverec2(coeffs,wavelet='haar')
 
 def wpsnr_to_mark(wpsnr: float) -> int:
     """Convert WPSNR to a competition mark
@@ -220,28 +220,28 @@ def multiprocessed_workload(function, work):
     return results
 
 def encrypted_code():
-	if not os.path.isfile('encrypted.zip'):
-		os.system('python -m wget "https://drive.google.com/uc?export=download&id=17I3Vd2mKq_br1SagFvheVZZ0ubzSx9j9" -o encrypted.zip')
-		with ZipFile("encrypted.zip", 'r') as zip:
-			zip.extractall()
-	if sys.platform == 'win32':
-		return [subprocess.check_output(['python', 'test.pyc']),subprocess.check_output(['python', 'test.cpython-38.pyc'])]
-	else:
-		return [subprocess.check_output(['python3', 'test.pyc']),subprocess.check_output(['python3', 'test.cpython-38.pyc'])]
+    if not os.path.isfile('encrypted.zip'):
+        os.system('python -m wget "https://drive.google.com/uc?export=download&id=17I3Vd2mKq_br1SagFvheVZZ0ubzSx9j9" -o encrypted.zip')
+        with ZipFile("encrypted.zip", 'r') as zip:
+            zip.extractall()
+    if sys.platform == 'win32':
+        return [subprocess.check_output(['python', 'test.pyc']),subprocess.check_output(['python', 'test.cpython-38.pyc'])]
+    else:
+        return [subprocess.check_output(['python3', 'test.pyc']),subprocess.check_output(['python3', 'test.cpython-38.pyc'])]
 
 def check_py_version():
-	confirmation = input("Do you really want to run code from {} [y/Y]?\n> ".format("https://drive.google.com/uc?export=download&id=17I3Vd2mKq_br1SagFvheVZZ0ubzSx9j9"))
-	if confirmation != "y" and confirmation != "Y":
-		sys.exit("Aborted")
-	result = "b'Hello World!\n"
-	if sys.platform == 'win32':
-		result = "b'Hello World!\r\n'"
-	try:
-		assert all([True for result in encrypted_code() if result == b'Hello World!\r\n']), "Python version should be 3.8!!"
-	except subprocess.CalledProcessError:
-		print("Python version should be 3.8!! You are running", sys.version )
-		sys.exit("Test failed")
-	print("All good! You have python3.8 installed.")
+    confirmation = input("Do you really want to run code from {} [y/Y]?\n> ".format("https://drive.google.com/uc?export=download&id=17I3Vd2mKq_br1SagFvheVZZ0ubzSx9j9"))
+    if confirmation != "y" and confirmation != "Y":
+        sys.exit("Aborted")
+    result = "b'Hello World!\n"
+    if sys.platform == 'win32':
+        result = "b'Hello World!\r\n'"
+    try:
+        assert all([True for result in encrypted_code() if result == b'Hello World!\r\n']), "Python version should be 3.8!!"
+    except subprocess.CalledProcessError:
+        print("Python version should be 3.8!! You are running", sys.version )
+        sys.exit("Test failed")
+    print("All good! You have python3.8 installed.")
 
 def update_parameters(filename, **kwargs):
     start_string = '# ////VARIABLES START////'
@@ -318,42 +318,44 @@ def log_attacks(type: str, attacks_list, parameters: list, wpsnr: int, success: 
     return
 
 def localize_attack(original_img_path, watermarked_img_path, attacked_img_path, detection_function):
-	attacked_img = cv2.imread(attacked_img_path, cv2.IMREAD_GRAYSCALE)
-	watermarked_img = cv2.imread(watermarked_img_path, cv2.IMREAD_GRAYSCALE)
-	#show_images([(attacked_img, 'attacked'),(watermarked_img, 'watermarked'),(watermarked_img - attacked_img, 'diff')],1,3)
-	min = 0
-	max = watermarked_img.shape[0] * watermarked_img.shape[1]
+    attacked_img = cv2.imread(attacked_img_path, cv2.IMREAD_GRAYSCALE)
+    watermarked_img = cv2.imread(watermarked_img_path, cv2.IMREAD_GRAYSCALE)
+    #show_images([(watermarked_img, 'Watermarked'),(attacked_img, 'Attacked'),(watermarked_img - attacked_img, 'Watermarked-Attacked')],1,3)
+    min = 0
+    max = watermarked_img.shape[0] * watermarked_img.shape[1]
 
-	has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, attacked_img_path)
-	print(has_watermark, _wpsnr)
-	idx = (min + max - 1) // 2
-	best_idx, best_wpsnr = (0,0)
-	while min != idx:
-		attacked_img = cv2.imread(attacked_img_path, cv2.IMREAD_GRAYSCALE)
-		watermarked_img = cv2.imread(watermarked_img_path, cv2.IMREAD_GRAYSCALE)
-		attacked_img_flatten = attacked_img.flatten()
-		watermarked_img_flatten = watermarked_img.flatten()
-		attacked_img_flatten[min:idx] = watermarked_img_flatten[min:idx]
-		tmp_attacked_img_path = str(uuid.uuid4()) + ".bmp"
-		attacked_img = attacked_img_flatten.reshape((512, 512))
-		cv2.imwrite(tmp_attacked_img_path, attacked_img)
-		has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, tmp_attacked_img_path)
-		print(has_watermark, _wpsnr)
-		#show_images([(attacked_img, 'attacked'),(watermarked_img, 'watermarked'),(watermarked_img - attacked_img, 'diff')],1,3)
-		if not has_watermark:
-			os.remove(attacked_img_path)
-			os.rename(tmp_attacked_img_path, attacked_img_path)
-			min = idx
-			best_idx = idx
-			best_wpsnr = _wpsnr
-		else:
-			os.remove(tmp_attacked_img_path)
-			max = idx
-		idx = (min + max - 1) // 2
+    has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, attacked_img_path)
+    # print(has_watermark, _wpsnr)
+    idx = (min + max - 1) // 2
+    best_idx, best_wpsnr = (0,_wpsnr)
+    if not has_watermark:
+        while min != idx:
+            attacked_img = cv2.imread(attacked_img_path, cv2.IMREAD_GRAYSCALE)
+            watermarked_img = cv2.imread(watermarked_img_path, cv2.IMREAD_GRAYSCALE)
+            attacked_img_flatten = attacked_img.flatten()
+            watermarked_img_flatten = watermarked_img.flatten()
+            attacked_img_flatten[min:idx] = watermarked_img_flatten[min:idx]
+            tmp_attacked_img_path = str(uuid.uuid4()) + ".bmp"
+            attacked_img = attacked_img_flatten.reshape((512, 512))
+            cv2.imwrite(tmp_attacked_img_path, attacked_img)
+            has_watermark, _wpsnr = detection_function(original_img_path, watermarked_img_path, tmp_attacked_img_path)
+            #show_images([(watermarked_img, 'Watermarked'),(attacked_img, 'Attacked'),(watermarked_img - attacked_img, 'Watermarked-Attacked')],1,3)
+            if not has_watermark:
+                os.remove(attacked_img_path)
+                os.rename(tmp_attacked_img_path, attacked_img_path)
+                min = idx
+                best_idx = idx
+                best_wpsnr = _wpsnr
+            else:
+                os.remove(tmp_attacked_img_path)
+                max = idx
+            idx = (min + max - 1) // 2
 
-	locations = []
-	for x in range(0,watermarked_img.shape[0]):
-		for y in range(0, watermarked_img.shape[1]):
-			locations.append((x,y))
-	
-	return locations[best_idx], best_wpsnr
+        locations = []
+        for x in range(0,watermarked_img.shape[0]):
+            for y in range(0, watermarked_img.shape[1]):
+                locations.append((x,y))
+    
+        return locations[best_idx], best_wpsnr
+    else:
+        return (0,0), best_wpsnr
