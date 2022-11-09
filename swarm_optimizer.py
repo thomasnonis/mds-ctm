@@ -12,16 +12,16 @@ from others import import_others_detection
 
 from attacks import gaussian_blur, average_blur, sharpen, median, resizing, awgn, jpeg_compression
 from detection_failedfouriertransform import detection
-from tools import show_images
+from tools import localize_attack
 from config import *
 
-ATTACKED_TEAM_NAME = 'youshallnotmark'
+ATTACKED_TEAM_NAME = 'howimetyourmark'
 image_names = ['tree', 'rollercoaster', 'buildings']
 # ATTACKED_IMG_NAME = 'rollercoaster'
 
 mod = import_others_detection(ATTACKED_TEAM_NAME)
 
-N_ITERATIONS = 52
+N_ITERATIONS = 30
 N_PARTICLES = 32
 N_SETS = 1
 N_DIMENSIONS = 15 * N_SETS
@@ -311,49 +311,9 @@ def run_best_attack(attacked_img, args):
 	return attacked_img
 
 if __name__ == '__main__':
-	attacked_img_name = image_names[0]
-	start_time = time.time()
-	original_img_path = 'images/' + ATTACKED_TEAM_NAME + '/original/' + attacked_img_name + '.bmp'
-
-	# For us
-	# watermarked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/watermarked/' + attacked_img_name + '_' + ATTACKED_TEAM_NAME + '.bmp'
-
-	# For others
-	watermarked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/watermarked/' + ATTACKED_TEAM_NAME + '_' + attacked_img_name + '.bmp'
-
-	attacked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/attacked/' + TEAM_NAME + '_' + ATTACKED_TEAM_NAME + '_' + attacked_img_name + '.bmp'
-
-	# print(original_img_path)
-	# print(watermarked_img_path)
-	# print(attacked_img_path)
-
-	# Set-up hyperparameters
-	#'c1': 0.5, 'c2': 0.3, 'w':0.9
-	c1 = 1.1
-	c2 = 0.7
-	w = 0.9
-	assert (w > -1 and w < 1 and (c1 + c2) < ((24*(1 - (w * w)))/(7 - (5 * w)))), 'Invalid PSO options. The algorithm will not converge.'
-	options = {'c1': c1, 'c2': c2, 'w':w}
-
-	min_bounds = [0, 0, 0, 0, 0, 0, 0, MIN_BOUND_GAUSSIAN_BLUR_SIGMA, MIN_BOUND_AVERAGE_BLUR_KERNEL_SIZE, MIN_BOUND_SHARPEN_SIGMA, MIN_BOUND_SHARPEN_ALPHA, MIN_BOUND_MEDIAN_KERNEL_SIZE, MIN_BOUND_RESIZING_SCALE, MIN_BOUND_AWGN_STD_DEV, MIN_BOUND_JPEG_QF, 0, 0, 0, 0, 0, 0, 0, MIN_BOUND_GAUSSIAN_BLUR_SIGMA, MIN_BOUND_AVERAGE_BLUR_KERNEL_SIZE, MIN_BOUND_SHARPEN_SIGMA, MIN_BOUND_SHARPEN_ALPHA, MIN_BOUND_MEDIAN_KERNEL_SIZE, MIN_BOUND_RESIZING_SCALE, MIN_BOUND_AWGN_STD_DEV, MIN_BOUND_JPEG_QF, 0, 0, 0, 0, 0, 0, 0, MIN_BOUND_GAUSSIAN_BLUR_SIGMA, MIN_BOUND_AVERAGE_BLUR_KERNEL_SIZE, MIN_BOUND_SHARPEN_SIGMA, MIN_BOUND_SHARPEN_ALPHA, MIN_BOUND_MEDIAN_KERNEL_SIZE, MIN_BOUND_RESIZING_SCALE, MIN_BOUND_AWGN_STD_DEV, MIN_BOUND_JPEG_QF]
-	max_bounds = [1, 1, 1, 1, 1, 1, 1, MAX_BOUND_GAUSSIAN_BLUR_SIGMA, MAX_BOUND_AVERAGE_BLUR_KERNEL_SIZE, MAX_BOUND_SHARPEN_SIGMA, MAX_BOUND_SHARPEN_ALPHA, MAX_BOUND_MEDIAN_KERNEL_SIZE, MAX_BOUND_RESIZING_SCALE, MAX_BOUND_AWGN_STD_DEV, MAX_BOUND_JPEG_QF, 1, 1, 1, 1, 1, 1, 1, MAX_BOUND_GAUSSIAN_BLUR_SIGMA, MAX_BOUND_AVERAGE_BLUR_KERNEL_SIZE, MAX_BOUND_SHARPEN_SIGMA, MAX_BOUND_SHARPEN_ALPHA, MAX_BOUND_MEDIAN_KERNEL_SIZE, MAX_BOUND_RESIZING_SCALE, MAX_BOUND_AWGN_STD_DEV, MAX_BOUND_JPEG_QF, 1, 1, 1, 1, 1, 1, 1, MAX_BOUND_GAUSSIAN_BLUR_SIGMA, MAX_BOUND_AVERAGE_BLUR_KERNEL_SIZE, MAX_BOUND_SHARPEN_SIGMA, MAX_BOUND_SHARPEN_ALPHA, MAX_BOUND_MEDIAN_KERNEL_SIZE, MAX_BOUND_RESIZING_SCALE, MAX_BOUND_AWGN_STD_DEV, MAX_BOUND_JPEG_QF]
-	bounds = (min_bounds[:N_DIMENSIONS], max_bounds[:N_DIMENSIONS])
-
-	if not os.path.exists(TMP_FOLDER_PATH):
-		os.makedirs(TMP_FOLDER_PATH)
-
-	print('Running optimization on [{} - {}] with {} iterations, {} particles and {} set{} of attacks'.format(ATTACKED_TEAM_NAME, attacked_img_name, N_ITERATIONS, N_PARTICLES, N_SETS, 's' if N_SETS > 1 else ''))
-	# Call instance of PSO
-	optimizer = ps.single.GlobalBestPSO(n_particles=N_PARTICLES, dimensions=N_DIMENSIONS, options=options, bounds=bounds)
-	# Perform optimization
-	cost, pos = optimizer.optimize(objective_function, iters=N_ITERATIONS, n_processes=min(multiprocessing.cpu_count(), N_PARALLEL_PROCESSES), verbose=ENABLE_VERBOSE, original_image_path=original_img_path, watermarked_image_path=watermarked_img_path, tmp_folder_path=TMP_FOLDER_PATH)
-
-	end_time = time.time()
 	
-	print_results(cost, pos)
-
-	print('========== RUNNING BEST ATTACK ==========')
 	for attacked_img_name in image_names:
+		start_time = time.time()		
 		original_img_path = 'images/' + ATTACKED_TEAM_NAME + '/original/' + attacked_img_name + '.bmp'
 
 		# For us
@@ -364,6 +324,38 @@ if __name__ == '__main__':
 
 		attacked_img_path = 'images/' + ATTACKED_TEAM_NAME + '/attacked/' + TEAM_NAME + '_' + ATTACKED_TEAM_NAME + '_' + attacked_img_name + '.bmp'
 
+		# print(original_img_path)
+		# print(watermarked_img_path)
+		# print(attacked_img_path)
+
+		# Set-up hyperparameters
+		#'c1': 0.5, 'c2': 0.3, 'w':0.9
+		c1 = 1.1
+		c2 = 0.7
+		w = 0.9
+		assert (w > -1 and w < 1 and (c1 + c2) < ((24*(1 - (w * w)))/(7 - (5 * w)))), 'Invalid PSO options. The algorithm will not converge.'
+		options = {'c1': c1, 'c2': c2, 'w':w}
+
+		min_bounds = [0, 0, 0, 0, 0, 0, 0, MIN_BOUND_GAUSSIAN_BLUR_SIGMA, MIN_BOUND_AVERAGE_BLUR_KERNEL_SIZE, MIN_BOUND_SHARPEN_SIGMA, MIN_BOUND_SHARPEN_ALPHA, MIN_BOUND_MEDIAN_KERNEL_SIZE, MIN_BOUND_RESIZING_SCALE, MIN_BOUND_AWGN_STD_DEV, MIN_BOUND_JPEG_QF, 0, 0, 0, 0, 0, 0, 0, MIN_BOUND_GAUSSIAN_BLUR_SIGMA, MIN_BOUND_AVERAGE_BLUR_KERNEL_SIZE, MIN_BOUND_SHARPEN_SIGMA, MIN_BOUND_SHARPEN_ALPHA, MIN_BOUND_MEDIAN_KERNEL_SIZE, MIN_BOUND_RESIZING_SCALE, MIN_BOUND_AWGN_STD_DEV, MIN_BOUND_JPEG_QF, 0, 0, 0, 0, 0, 0, 0, MIN_BOUND_GAUSSIAN_BLUR_SIGMA, MIN_BOUND_AVERAGE_BLUR_KERNEL_SIZE, MIN_BOUND_SHARPEN_SIGMA, MIN_BOUND_SHARPEN_ALPHA, MIN_BOUND_MEDIAN_KERNEL_SIZE, MIN_BOUND_RESIZING_SCALE, MIN_BOUND_AWGN_STD_DEV, MIN_BOUND_JPEG_QF]
+		max_bounds = [1, 1, 1, 1, 1, 1, 1, MAX_BOUND_GAUSSIAN_BLUR_SIGMA, MAX_BOUND_AVERAGE_BLUR_KERNEL_SIZE, MAX_BOUND_SHARPEN_SIGMA, MAX_BOUND_SHARPEN_ALPHA, MAX_BOUND_MEDIAN_KERNEL_SIZE, MAX_BOUND_RESIZING_SCALE, MAX_BOUND_AWGN_STD_DEV, MAX_BOUND_JPEG_QF, 1, 1, 1, 1, 1, 1, 1, MAX_BOUND_GAUSSIAN_BLUR_SIGMA, MAX_BOUND_AVERAGE_BLUR_KERNEL_SIZE, MAX_BOUND_SHARPEN_SIGMA, MAX_BOUND_SHARPEN_ALPHA, MAX_BOUND_MEDIAN_KERNEL_SIZE, MAX_BOUND_RESIZING_SCALE, MAX_BOUND_AWGN_STD_DEV, MAX_BOUND_JPEG_QF, 1, 1, 1, 1, 1, 1, 1, MAX_BOUND_GAUSSIAN_BLUR_SIGMA, MAX_BOUND_AVERAGE_BLUR_KERNEL_SIZE, MAX_BOUND_SHARPEN_SIGMA, MAX_BOUND_SHARPEN_ALPHA, MAX_BOUND_MEDIAN_KERNEL_SIZE, MAX_BOUND_RESIZING_SCALE, MAX_BOUND_AWGN_STD_DEV, MAX_BOUND_JPEG_QF]
+		bounds = (min_bounds[:N_DIMENSIONS], max_bounds[:N_DIMENSIONS])
+
+		if not os.path.exists(TMP_FOLDER_PATH):
+			os.makedirs(TMP_FOLDER_PATH)
+
+		print('Running optimization on [{} - {}] with {} iterations, {} particles and {} set{} of attacks'.format(ATTACKED_TEAM_NAME, attacked_img_name, N_ITERATIONS, N_PARTICLES, N_SETS, 's' if N_SETS > 1 else ''))
+		# Call instance of PSO
+		optimizer = ps.single.GlobalBestPSO(n_particles=N_PARTICLES, dimensions=N_DIMENSIONS, options=options, bounds=bounds)
+		# Perform optimization
+		cost, pos = optimizer.optimize(objective_function, iters=N_ITERATIONS, n_processes=min(multiprocessing.cpu_count(), N_PARALLEL_PROCESSES), verbose=ENABLE_VERBOSE, original_image_path=original_img_path, watermarked_image_path=watermarked_img_path, tmp_folder_path=TMP_FOLDER_PATH)
+
+		end_time = time.time()
+		
+		print_results(cost, pos)
+
+		print('========== RUNNING BEST ATTACK ==========')
+		
+
 		watermarked_img = cv.imread(watermarked_img_path, cv.IMREAD_GRAYSCALE)
 		attacked_img = run_best_attack(watermarked_img, pos)
 		cv.imwrite(attacked_img_path, attacked_img)
@@ -371,11 +363,17 @@ if __name__ == '__main__':
 		# External detection function
 		has_watermark, wpsnr = mod.detection(original_img_path, watermarked_img_path, attacked_img_path)
 		# has_watermark, wpsnr = detection(original_img_path, watermarked_img_path, attacked_img_path)
+		print('WPSNR before localization: ', wpsnr)
+		print('Has watermark before localization: ', has_watermark)
 
+		location, _ = localize_attack(original_img_path, watermarked_img_path, attacked_img_path, mod.detection)
+
+		has_watermark, wpsnr = mod.detection(original_img_path, watermarked_img_path, attacked_img_path)
 		log_csv('attacks_log.csv', original_img_path, cost, pos, has_watermark)
 
-		print('WPSNR: ', wpsnr)
-		print('Has watermark: ', has_watermark)
+		print('WPSNR after localization: ', wpsnr)
+		print('Has watermark after localization: ', has_watermark)
+		print('Location: ', location)
 
 	attempts = 10
 	while(os.path.exists(TMP_FOLDER_PATH)) and attempts > 0:
